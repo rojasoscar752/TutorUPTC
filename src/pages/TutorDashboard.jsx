@@ -4,7 +4,8 @@ import {
   Download, AlertTriangle, CheckCircle, RefreshCw 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getLocalSessions, saveLocalSessions } from '../db/localDb';
+import { getLocalSessions, saveLocalSessions, saveLocalProfile } from '../db/localDb';
+import { saveUserProfile } from '../db/firebase';
 
 export function TutorDashboard() {
   const { profile } = useAuth();
@@ -13,17 +14,32 @@ export function TutorDashboard() {
   // Dashboard Metrics
   const [sessions, setSessions] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
-  const [averageRating, setAverageRating] = useState(4.8);
-  
-  // Profile Form states (RF-02)
-  const [bio, setBio] = useState(profile?.biography || '');
+  const [averageRating, setAverageRating] = useState(4.8);  // Profile Form states (RF-02)
+  const [bio, setBio] = useState('');
   const [rate, setRate] = useState(15000);
+  const [discipline, setDiscipline] = useState('');
+  const [facultyState, setFacultyState] = useState('Ingeniería');
   const [monAvailability, setMonAvailability] = useState(true);
   const [tueAvailability, setTueAvailability] = useState(false);
   const [wedAvailability, setWedAvailability] = useState(true);
   const [thuAvailability, setThuAvailability] = useState(false);
   const [friAvailability, setFriAvailability] = useState(true);
   const [profileSuccess, setProfileSuccess] = useState(false);
+
+  // Sync profile details when loaded
+  useEffect(() => {
+    if (profile) {
+      setBio(profile.biography || '');
+      setRate(profile.hourlyRate || 15000);
+      setDiscipline(profile.discipline || '');
+      setFacultyState(profile.faculty || 'Ingeniería');
+      setMonAvailability(profile.availability?.includes('Lunes (8:00 - 12:00)') ?? true);
+      setTueAvailability(profile.availability?.includes('Martes (14:00 - 18:00)') ?? false);
+      setWedAvailability(profile.availability?.includes('Miércoles (8:00 - 12:00)') ?? true);
+      setThuAvailability(profile.availability?.includes('Jueves (14:00 - 18:00)') ?? false);
+      setFriAvailability(profile.availability?.includes('Viernes (8:00 - 12:00)') ?? true);
+    }
+  }, [profile]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -45,14 +61,44 @@ export function TutorDashboard() {
   }, []);
 
   // Update Profile Biography / Availability (RF-02)
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (!profile) return;
     if (bio.length > 500) {
       alert('La biografía no puede superar los 500 caracteres.');
       return;
     }
-    setProfileSuccess(true);
-    setTimeout(() => setProfileSuccess(false), 3000);
+
+    const availabilityArray = [];
+    if (monAvailability) availabilityArray.push('Lunes (8:00 - 12:00)');
+    if (tueAvailability) availabilityArray.push('Martes (14:00 - 18:00)');
+    if (wedAvailability) availabilityArray.push('Miércoles (8:00 - 12:00)');
+    if (thuAvailability) availabilityArray.push('Jueves (14:00 - 18:00)');
+    if (friAvailability) availabilityArray.push('Viernes (8:00 - 12:00)');
+
+    const slugUsername = profile.username || profile.displayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-');
+
+    const updatedProfile = {
+      ...profile,
+      biography: bio,
+      hourlyRate: rate,
+      discipline: discipline,
+      faculty: facultyState,
+      availability: availabilityArray,
+      username: slugUsername
+    };
+    try {
+      await saveUserProfile(profile.uid, updatedProfile);
+      await saveLocalProfile(updatedProfile);
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 3000);
+      
+      alert('¡Perfil actualizado con éxito!');
+      window.location.reload();
+    } catch (err) {
+      console.error('Error saving tutor profile:', err);
+      alert('Hubo un error al actualizar el perfil.');
+    }
   };
 
   // Toggle Transaction Status (RF-07)
@@ -238,7 +284,7 @@ export function TutorDashboard() {
             )}
 
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="grid-container">
+              <div className="grid-container" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                 <div className="form-group">
                   <label>Fotografía de Ficha</label>
                   <div style={styles.avatarEditor}>
@@ -254,6 +300,34 @@ export function TutorDashboard() {
                 </div>
 
                 <div className="form-group">
+                  <label>Materia / Especialidad (ej. Sistemas, Cálculo)</label>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    value={discipline}
+                    onChange={(e) => setDiscipline(e.target.value)}
+                    required
+                    placeholder="Materia que dictas..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Facultad UPTC</label>
+                  <select 
+                    className="input" 
+                    value={facultyState}
+                    onChange={(e) => setFacultyState(e.target.value)}
+                    style={{ width: '100%', height: '44px', boxSizing: 'border-box' }}
+                    required
+                  >
+                    <option value="Ingeniería">Ingeniería</option>
+                    <option value="Ciencias de la Educación">Ciencias de la Educación</option>
+                    <option value="Ciencias">Ciencias</option>
+                    <option value="Ciencias Económicas y Administrativas">Ciencias Económicas y Administrativas</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label>Tarifa Horaria ($ COP)</label>
                   <input 
                     type="number" 
@@ -266,7 +340,6 @@ export function TutorDashboard() {
                   />
                 </div>
               </div>
-
               <div className="form-group">
                 <label>Reseña Biográfica de Tutor (Máx. 500 caracteres, RF-02)</label>
                 <textarea 

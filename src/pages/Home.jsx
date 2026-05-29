@@ -1,58 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Star, MapPin, Video, BookOpen, Award, Sparkles } from 'lucide-react';
-
-// Mock Tutors Data for demonstration
-const MOCK_TUTORS = [
-  {
-    uid: 't1',
-    username: 'anderson-carvajal',
-    displayName: 'Anderson Carvajal',
-    faculty: 'Ingeniería',
-    discipline: 'Sistemas',
-    biography: 'Estudiante de último semestre de Ingeniería de Sistemas. Dominio de algoritmos, estructuras de datos, React, Node y bases de datos relacionales. Apasionado por la enseñanza.',
-    rating: 4.9,
-    reviewCount: 24,
-    hourlyRate: 15000,
-    modality: 'digital', // 'digital', 'physical', or 'both'
-    isVerified: true,
-    hasFreeIntro: true,
-    photoURL: '/anderson.png'
-  },
-  {
-    uid: 't2',
-    username: 'oscar-rojas',
-    displayName: 'Oscar Ivan Rojas',
-    faculty: 'Ciencias de la Educación',
-    discipline: 'Matemáticas',
-    biography: 'Tutor de cálculo diferencial, integral y álgebra lineal. Explicaciones paso a paso con metodología adaptable a cualquier nivel académico.',
-    rating: 4.7,
-    reviewCount: 18,
-    hourlyRate: 12000,
-    modality: 'both',
-    isVerified: true,
-    hasFreeIntro: false,
-    photoURL: '/oscar.jpg'
-  },
-  {
-    uid: 't3',
-    username: 'tomas-useche',
-    displayName: 'Tomas Useche',
-    faculty: 'Ingeniería',
-    discipline: 'Física',
-    biography: 'Refuerzo de Física I, II y Mecánica Newtoniana. Resolución de ejercicios de talleres y preparación de exámenes parciales.',
-    rating: 4.8,
-    reviewCount: 15,
-    hourlyRate: 18000,
-    modality: 'physical',
-    isVerified: false,
-    hasFreeIntro: true,
-    photoURL: '/tomas.jpg'
-  }
-];
+import { fetchTutorsList } from '../db/firebase';
 
 export function Home() {
   const navigate = useNavigate();
+  const [tutors, setTutors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [faculty, setFaculty] = useState('All');
   const [modality, setModality] = useState('All');
@@ -60,18 +13,38 @@ export function Home() {
   const [maxPrice, setMaxPrice] = useState(25000);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Load tutors from DB on mount
+  useEffect(() => {
+    const getTutors = async () => {
+      try {
+        const list = await fetchTutorsList();
+        setTutors(list);
+      } catch (err) {
+        console.error('Error fetching tutors:', err);
+      }
+    };
+    getTutors();
+  }, []);
+
   // Filters calculation
-  const filteredTutors = MOCK_TUTORS.filter(tutor => {
-    const matchesSearch = tutor.displayName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          tutor.discipline.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredTutors = tutors.filter(tutor => {
+    const displayName = tutor.displayName || '';
+    const discipline = tutor.discipline || '';
+    const matchesSearch = displayName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          discipline.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFaculty = faculty === 'All' || tutor.faculty === faculty;
     const matchesModality = modality === 'All' || tutor.modality === modality || tutor.modality === 'both';
-    const matchesPrice = tutor.hourlyRate <= maxPrice;
+    const matchesPrice = tutor.hourlyRate ? tutor.hourlyRate <= maxPrice : true;
     
     return matchesSearch && matchesFaculty && matchesModality && matchesPrice;
   }).sort((a, b) => {
-    if (sortBy === 'rating') return b.rating - a.rating;
-    if (sortBy === 'price') return a.hourlyRate - b.hourlyRate;
+    const ratingA = a.rating ?? 5.0;
+    const ratingB = b.rating ?? 5.0;
+    const rateA = a.hourlyRate ?? 0;
+    const rateB = b.hourlyRate ?? 0;
+
+    if (sortBy === 'rating') return ratingB - ratingA;
+    if (sortBy === 'price') return rateA - rateB;
     return 0;
   });
 
@@ -173,10 +146,10 @@ export function Home() {
               >
                 {/* Header info */}
                 <div style={styles.cardHeader}>
-                  <img src={tutor.photoURL} alt={tutor.displayName} style={styles.cardAvatar} />
+                  <img src={tutor.photoURL || '/oscar.jpg'} alt={tutor.displayName || 'Tutor'} style={styles.cardAvatar} />
                   <div style={styles.cardIdentity}>
                     <div style={styles.nameRow}>
-                      <h3 style={styles.tutorName}>{tutor.displayName}</h3>
+                      <h3 style={styles.tutorName}>{tutor.displayName || 'Colaborador UPTC'}</h3>
                       {tutor.isVerified && (
                         <span style={styles.verifiedBadge} title="Perfil Verificado">
                           <Award size={14} />
@@ -184,15 +157,15 @@ export function Home() {
                       )}
                     </div>
                     <div style={styles.subjectRow}>
-                      <span className="badge badge-primary">{tutor.discipline}</span>
-                      <span style={styles.facultyText}>{tutor.faculty}</span>
+                      <span className="badge badge-primary">{tutor.discipline || 'Materia'}</span>
+                      <span style={styles.facultyText}>{tutor.faculty || 'Facultad'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Bio text */}
                 <p style={styles.biographyText}>
-                  {tutor.biography.slice(0, 140)}...
+                  {(tutor.biography || 'Sin biografía disponible.').slice(0, 140)}...
                 </p>
 
                 {/* Footer specs */}
@@ -200,8 +173,8 @@ export function Home() {
                   <div style={styles.statsCol}>
                     <div style={styles.ratingRow}>
                       <Star size={16} fill="var(--accent)" color="var(--accent)" />
-                      <span>{tutor.rating.toFixed(1)}</span>
-                      <span style={styles.reviewsText}>({tutor.reviewCount})</span>
+                      <span>{(tutor.rating ?? 5.0).toFixed(1)}</span>
+                      <span style={styles.reviewsText}>({tutor.reviewCount ?? tutor.reviews?.length ?? 0})</span>
                     </div>
                     <div style={styles.modalityRow}>
                       {tutor.modality === 'digital' || tutor.modality === 'both' ? (
@@ -217,7 +190,7 @@ export function Home() {
                   </div>
                   <div style={styles.priceCol}>
                     <span style={styles.hourlyLabel}>Por hora</span>
-                    <span style={styles.hourlyValue}>${tutor.hourlyRate.toLocaleString()}</span>
+                    <span style={styles.hourlyValue}>${(tutor.hourlyRate ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
 

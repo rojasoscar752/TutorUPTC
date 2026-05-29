@@ -3,65 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, Share2, Award, Star, Video, MapPin, Calendar, Clock, ArrowLeft, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocalFavorites, saveLocalFavorites } from '../db/localDb';
-
-// Reusable mock data
-const MOCK_TUTORS = [
-  {
-    uid: 't1',
-    username: 'anderson-carvajal',
-    displayName: 'Anderson Carvajal',
-    faculty: 'Ingeniería',
-    discipline: 'Sistemas',
-    biography: 'Estudiante de último semestre de Ingeniería de Sistemas. Dominio de algoritmos, estructuras de datos, React, Node y bases de datos relacionales. Apasionado por la enseñanza y con experiencia guiando materias de primer semestre.',
-    rating: 4.9,
-    reviews: [
-      { id: 'r1', author: 'Oscar Rojas', rating: 5, date: '2026-05-10', comment: 'Excelente explicación, domina muchísimo los temas de programación y es muy paciente.' },
-      { id: 'r2', author: 'Tomas Useche', rating: 4.8, date: '2026-05-18', comment: 'Me ayudó a pasar el parcial de Estructuras de Datos. Muy recomendado.' }
-    ],
-    hourlyRate: 15000,
-    modality: 'digital',
-    isVerified: true,
-    hasFreeIntro: true,
-    photoURL: '/anderson.png',
-    availability: ['Lunes (8:00 - 12:00)', 'Miércoles (14:00 - 18:00)', 'Viernes (8:00 - 12:00)']
-  },
-  {
-    uid: 't2',
-    username: 'oscar-rojas',
-    displayName: 'Oscar Ivan Rojas',
-    faculty: 'Ciencias de la Educación',
-    discipline: 'Matemáticas',
-    biography: 'Tutor de cálculo diferencial, integral y álgebra lineal. Explicaciones paso a paso con metodología adaptable a cualquier nivel académico. Apoyo en talleres complejos y preparatorios.',
-    rating: 4.7,
-    reviews: [
-      { id: 'r3', author: 'Anderson Carvajal', rating: 4.5, date: '2026-05-12', comment: 'Explicó cálculo vectorial de forma muy simple. Volveré a tomar clase.' }
-    ],
-    hourlyRate: 12000,
-    modality: 'both',
-    isVerified: true,
-    hasFreeIntro: false,
-    photoURL: '/oscar.jpg',
-    availability: ['Martes (14:00 - 18:00)', 'Jueves (14:00 - 18:00)', 'Sábado (8:00 - 12:00)']
-  },
-  {
-    uid: 't3',
-    username: 'tomas-useche',
-    displayName: 'Tomas Useche',
-    faculty: 'Ingeniería',
-    discipline: 'Física',
-    biography: 'Refuerzo de Física I, II y Mecánica Newtoniana. Resolución de ejercicios de talleres y preparación de exámenes parciales. Enfoque práctico.',
-    rating: 4.8,
-    reviews: [
-      { id: 'r4', author: 'Camilo Diaz', rating: 5, date: '2026-05-15', comment: 'El mejor tutor de física. Hace ver fácil lo difícil.' }
-    ],
-    hourlyRate: 18000,
-    modality: 'physical',
-    isVerified: false,
-    hasFreeIntro: true,
-    photoURL: '/tomas.jpg',
-    availability: ['Lunes (14:00 - 18:00)', 'Viernes (14:00 - 18:00)']
-  }
-];
+import { fetchTutorByUsername } from '../db/firebase';
 
 export function TutorProfile() {
   const { username } = useParams();
@@ -69,6 +11,7 @@ export function TutorProfile() {
   const { user } = useAuth();
   
   const [tutor, setTutor] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   
@@ -81,20 +24,44 @@ export function TutorProfile() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
   useEffect(() => {
-    // Find tutor by username
-    const foundTutor = MOCK_TUTORS.find(t => t.username === username);
-    if (foundTutor) {
-      setTutor(foundTutor);
-      setBookMode(foundTutor.modality === 'both' ? 'digital' : foundTutor.modality);
-      
-      // Check Favorites status from IndexedDB
-      const checkFav = async () => {
-        const favs = await getLocalFavorites();
-        setIsFavorite(favs.includes(foundTutor.uid));
-      };
-      checkFav();
-    }
+    const loadTutor = async () => {
+      setLoading(true);
+      try {
+        const foundTutor = await fetchTutorByUsername(username);
+        if (foundTutor) {
+          const normalized = {
+            ...foundTutor,
+            rating: foundTutor.rating ?? 5.0,
+            reviews: foundTutor.reviews ?? [],
+            modality: foundTutor.modality ?? 'both',
+            faculty: foundTutor.faculty ?? 'Ingeniería',
+            discipline: foundTutor.discipline ?? 'Sistemas',
+            availability: foundTutor.availability ?? []
+          };
+          setTutor(normalized);
+          setBookMode(normalized.modality === 'both' ? 'digital' : normalized.modality);
+          
+          const favs = await getLocalFavorites();
+          setIsFavorite(favs.includes(normalized.uid));
+        } else {
+          setTutor(null);
+        }
+      } catch (err) {
+        console.error('Error fetching tutor profile:', err);
+        setTutor(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTutor();
   }, [username]);
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+        <h2>Cargando perfil...</h2>
+      </div>
+    );
+  }
 
   if (!tutor) {
     return (
@@ -106,7 +73,6 @@ export function TutorProfile() {
       </div>
     );
   }
-
   // Favorite toggle (RF-13)
   const toggleFavorite = async () => {
     if (!user) {

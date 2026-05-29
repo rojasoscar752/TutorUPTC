@@ -7,43 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOfflineState } from '../context/OfflineContext';
 import { getLocalMessages, addLocalMessage, saveLocalSessions, getLocalSessions } from '../db/localDb';
 
-// Reusable mock sessions for demonstration
-const MOCK_SESSIONS = [
-  {
-    id: 's1',
-    tutorName: 'Anderson Carvajal',
-    tutorUid: 't1',
-    studentName: 'Oscar Rojas',
-    studentUid: 't2',
-    discipline: 'Sistemas',
-    date: '2026-05-30',
-    time: '10:00',
-    dateTime: '2026-05-30T10:00:00', // Mock upcoming date
-    duration: 60,
-    modality: 'digital',
-    meetLink: 'https://meet.google.com/abc-defg-hij',
-    location: '',
-    status: 'scheduled', // 'scheduled', 'completed', 'cancelled'
-    paymentStatus: 'pending' // 'pending', 'executed'
-  },
-  {
-    id: 's2',
-    tutorName: 'Tomas Useche',
-    tutorUid: 't3',
-    studentName: 'Oscar Rojas',
-    studentUid: 't2',
-    discipline: 'Física',
-    date: '2026-05-28',
-    time: '14:00',
-    dateTime: '2026-05-28T14:00:00', // Mock past date
-    duration: 90,
-    modality: 'physical',
-    meetLink: '',
-    location: 'Biblioteca Central UPTC - Piso 2',
-    status: 'completed',
-    paymentStatus: 'executed'
-  }
-];
+
 
 export function Sessions() {
   const { user, profile } = useAuth();
@@ -66,6 +30,8 @@ export function Sessions() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancellationAuditWarning, setCancellationAuditWarning] = useState(false);
 
+
+
   // Load user sessions from localDB or Firebase
   useEffect(() => {
     const fetchSessions = async () => {
@@ -74,10 +40,8 @@ export function Sessions() {
         setSessions(cached);
         setSelectedSession(cached[0]);
       } else {
-        // Fallback to mock and cache them
-        setSessions(MOCK_SESSIONS);
-        setSelectedSession(MOCK_SESSIONS[0]);
-        await saveLocalSessions(MOCK_SESSIONS);
+        setSessions([]);
+        setSelectedSession(null);
       }
     };
     fetchSessions();
@@ -88,19 +52,7 @@ export function Sessions() {
     if (selectedSession) {
       const loadChat = async () => {
         const msgs = await getLocalMessages(selectedSession.id);
-        if (msgs.length > 0) {
-          setMessages(msgs);
-        } else {
-          // Initialize mock messages for demonstration
-          const initialMsgs = [
-            { id: 'm1', senderName: selectedSession.tutorName, text: 'Hola! Qué dudas específicas tienes para nuestra sesión?', timestamp: new Date(Date.now() - 3600000).toISOString() },
-            { id: 'm2', senderName: 'Yo', text: 'Hola, me gustaría revisar el tema de recursividad y diagramas de flujo.', timestamp: new Date(Date.now() - 1800000).toISOString() }
-          ];
-          for (const m of initialMsgs) {
-            await addLocalMessage(selectedSession.id, m);
-          }
-          setMessages(initialMsgs);
-        }
+        setMessages(msgs);
       };
       loadChat();
       setReviewSubmitted(false);

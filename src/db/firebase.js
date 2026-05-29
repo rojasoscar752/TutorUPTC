@@ -6,7 +6,10 @@ import {
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { 
+  getFirestore, doc, getDoc, setDoc,
+  collection, query, where, getDocs 
+} from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
 
 // Firebase configuration from environment
@@ -140,20 +143,35 @@ export const fetchUserProfile = async (uid) => {
       return JSON.parse(localData);
     }
     
-    // If logging in for the first time, return a default mock tutor/student profile matching UID t2
+    // If logging in for the first time, return a default mock student profile matching UID t2
     if (uid === 't2') {
       return {
         uid: 't2',
         email: 'oscar.rojas01@uptc.edu.co',
         displayName: 'Oscar Ivan Rojas cuesta',
         photoURL: '/oscar.jpg',
-        role: 'tutor', // Logged in as tutor for testing dashboard
-        isVerified: true,
+        role: 'student',
+        isVerified: false,
         createdAt: new Date().toISOString(),
-        biography: 'Tutor de cálculo diferencial, integral y álgebra lineal. Explicaciones paso a paso con metodología adaptable a cualquier nivel académico.'
+        biography: 'Estudiante UPTC.'
       };
     }
     return null;
+  } else {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  }
+};
+
+/**
+ * Fetches a single user/tutor profile by their UID.
+ */
+export const fetchTutorById = async (uid) => {
+  if (useMock) {
+    const localProfileKey = `tutoruptc_profile_doc_${uid}`;
+    const localData = localStorage.getItem(localProfileKey);
+    return localData ? JSON.parse(localData) : null;
   } else {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
@@ -172,6 +190,69 @@ export const saveUserProfile = async (uid, data) => {
   } else {
     const docRef = doc(db, 'users', uid);
     await setDoc(docRef, data);
+  }
+};
+
+/**
+ * Fetches all verified tutors from the database (Firestore or LocalMock).
+ */
+export const fetchTutorsList = async () => {
+  if (useMock) {
+    const list = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('tutoruptc_profile_doc_')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (data.role === 'tutor' && data.isVerified) {
+            list.push(data);
+          }
+        } catch (e) {}
+      }
+    }
+    return list;
+  } else {
+    const q = query(
+      collection(db, 'users'), 
+      where('role', '==', 'tutor'), 
+      where('isVerified', '==', true)
+    );
+    const querySnapshot = await getDocs(q);
+    const list = [];
+    querySnapshot.forEach((doc) => {
+      list.push(doc.data());
+    });
+    return list;
+  }
+};
+
+/**
+ * Fetches a single tutor profile by their slug username from the database.
+ */
+export const fetchTutorByUsername = async (username) => {
+  if (useMock) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('tutoruptc_profile_doc_')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (data.username === username) {
+            return data;
+          }
+        } catch (e) {}
+      }
+    }
+    return null;
+  } else {
+    const q = query(
+      collection(db, 'users'), 
+      where('username', '==', username)
+    );
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].data();
+    }
+    return null;
   }
 };
 

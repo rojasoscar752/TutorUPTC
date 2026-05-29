@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Calendar, Award, Upload, ShieldCheck, Clock, FileText, ChevronRight, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocalFavorites, getLocalSessions, saveLocalProfile } from '../db/localDb';
-import { saveUserProfile } from '../db/firebase';
-
-// Reusable mock tutors to resolve bookmark lists
-const MOCK_TUTORS = [
-  { uid: 't1', username: 'anderson-carvajal', displayName: 'Anderson Carvajal', discipline: 'Sistemas', photoURL: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80', isVerified: true },
-  { uid: 't2', username: 'oscar-rojas', displayName: 'Oscar Ivan Rojas', discipline: 'Matemáticas', photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', isVerified: true },
-  { uid: 't3', username: 'tomas-useche', displayName: 'Tomas Useche', discipline: 'Física', photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', isVerified: false }
-];
+import { saveUserProfile, fetchTutorById } from '../db/firebase';
 
 export function StudentConsole() {
   const navigate = useNavigate();
@@ -29,7 +22,22 @@ export function StudentConsole() {
     const loadStudentData = async () => {
       // 1. Load favorites from IndexedDB
       const favIds = await getLocalFavorites();
-      const favList = MOCK_TUTORS.filter(t => favIds.includes(t.uid));
+      const favList = [];
+      for (const uid of favIds) {
+        try {
+          const tutorProfile = await fetchTutorById(uid);
+          if (tutorProfile) {
+            favList.push({
+              ...tutorProfile,
+              rating: tutorProfile.rating ?? 5.0,
+              discipline: tutorProfile.discipline ?? 'Sistemas',
+              photoURL: tutorProfile.photoURL ?? '/oscar.jpg'
+            });
+          }
+        } catch (e) {
+          console.error(`Error loading favorite profile ${uid}:`, e);
+        }
+      }
       setFavoriteTutors(favList);
 
       // 2. Load active sessions
@@ -66,10 +74,17 @@ export function StudentConsole() {
   const handleSimulateApproval = async () => {
     if (!profile) return;
     
+    const slugUsername = profile.username || profile.displayName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-');
     const updatedProfile = {
       ...profile,
       role: 'tutor',
-      isVerified: true
+      isVerified: true,
+      username: slugUsername,
+      biography: profile.biography || 'Estudiante de la UPTC, ahora tutor colaborador.',
+      hourlyRate: profile.hourlyRate || 15000,
+      faculty: profile.faculty || 'Ingeniería',
+      discipline: profile.discipline || 'Sistemas',
+      availability: profile.availability || ['Lunes (8:00 - 12:00)', 'Miércoles (14:00 - 18:00)', 'Viernes (8:00 - 12:00)']
     };
     
     try {
@@ -82,9 +97,7 @@ export function StudentConsole() {
     } catch (err) {
       console.error('Error simulating approval:', err);
     }
-  };
-
-  return (
+  };  return (
     <div className="animate-fade-in" style={styles.container}>
       <header style={styles.header}>
         <h1>Consola del Estudiante</h1>
@@ -255,13 +268,14 @@ export function StudentConsole() {
                   style={styles.tutorRowCard}
                   onClick={() => navigate(`/tutor/${t.username}`)}
                 >
-                  <img src={t.photoURL} alt={t.displayName} style={styles.rowAvatar} />
+
+                  <img src={t.photoURL || '/oscar.jpg'} alt={t.displayName || 'Tutor'} style={styles.rowAvatar} />
                   <div style={{ flex: 1 }}>
                     <div style={styles.nameRow}>
-                      <h4 style={styles.rowName}>{t.displayName}</h4>
+                      <h4 style={styles.rowName}>{t.displayName || 'Colaborador UPTC'}</h4>
                       {t.isVerified && <Award size={16} color="var(--accent)" />}
                     </div>
-                    <span className="badge badge-primary">{t.discipline}</span>
+                    <span className="badge badge-primary">{t.discipline || 'Materia'}</span>
                   </div>
                   <ChevronRight size={20} color="var(--text-muted)" />
                 </div>

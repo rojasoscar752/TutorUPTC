@@ -123,15 +123,43 @@ export const getLocalFavorites = async () => {
     return [];
   }
 };
-
 /**
- * RNF-31: Clears all local data from IndexedDB on logout.
- */
-export const clearAllLocalData = async () => {
+ * RNF-31: Clears all local data from IndexedDB and localStorage on logout.
+ */export const clearAllLocalData = async () => {
   try {
     await clear();
     console.log('IndexedDB cleared successfully upon sign out.');
+    
+    // Clear localStorage keys starting with 'tutoruptc_'
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('tutoruptc_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log('localStorage keys cleared successfully upon sign out.');
   } catch (error) {
-    console.error('Error clearing IndexedDB:', error);
+    console.error('Error clearing local data:', error);
   }
 };
+// Clean up any residual mock data on script initialization
+try {
+  // Clear mock profiles t1 and t3 from localStorage
+  localStorage.removeItem('tutoruptc_profile_doc_t1');
+  localStorage.removeItem('tutoruptc_profile_doc_t3');
+  
+  // Clean mock sessions s1 and s2 from IndexedDB
+  get(KEYS.SESSIONS).then((sessions) => {
+    if (sessions && Array.isArray(sessions)) {
+      const containsMock = sessions.some(s => s.id === 's1' || s.id === 's2' || s.tutorUid === 't1' || s.tutorUid === 't3');
+      if (containsMock) {
+        const cleaned = sessions.filter(s => s.id !== 's1' && s.id !== 's2' && s.tutorUid !== 't1' && s.tutorUid !== 't3');
+        set(KEYS.SESSIONS, cleaned);
+      }
+    }
+  }).catch(() => {});
+} catch (e) {
+  console.error('Error in self-cleanup script:', e);
+}
