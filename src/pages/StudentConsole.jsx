@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Calendar, Award, Upload, ShieldCheck, Clock, FileText, ChevronRight } from 'lucide-react';
+import { Heart, Calendar, Award, Upload, ShieldCheck, Clock, FileText, ChevronRight, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocalFavorites, getLocalSessions, saveLocalProfile } from '../db/localDb';
 import { saveUserProfile } from '../db/firebase';
@@ -16,7 +16,7 @@ export function StudentConsole() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   
-  const [activeTab, setActiveTab] = useState('classes'); // 'classes', 'favorites', 'verify'
+  const [activeTab, setActiveTab] = useState('profile_tab'); // 'profile_tab', 'classes', 'favorites', 'verify'
   const [favoriteTutors, setFavoriteTutors] = useState([]);
   const [activeSessions, setActiveSessions] = useState([]);
   
@@ -94,6 +94,12 @@ export function StudentConsole() {
       {/* Tab bar */}
       <div style={styles.tabBar}>
         <button 
+          style={{...styles.tabBtn, borderBottomColor: activeTab === 'profile_tab' ? 'var(--accent)' : 'transparent', color: activeTab === 'profile_tab' ? 'var(--accent)' : 'var(--text-secondary)'}}
+          onClick={() => setActiveTab('profile_tab')}
+        >
+          <User size={16} /> Mi Perfil UPTC
+        </button>
+        <button 
           style={{...styles.tabBtn, borderBottomColor: activeTab === 'classes' ? 'var(--accent)' : 'transparent', color: activeTab === 'classes' ? 'var(--accent)' : 'var(--text-secondary)'}}
           onClick={() => setActiveTab('classes')}
         >
@@ -114,6 +120,80 @@ export function StudentConsole() {
       </div>
 
       <div style={styles.tabContent}>
+        {/* Tab 0: Mi Perfil UPTC */}
+        {activeTab === 'profile_tab' && (
+          <div className="glass-card animate-fade-in" style={{ padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+            <div style={styles.profileHeader}>
+              <div style={styles.imageWrapper}>
+                {profile?.photoURL ? (
+                  <img src={profile.photoURL} alt={profile.displayName} style={styles.profileAvatarLarge} />
+                ) : (
+                  <div style={styles.avatarFallbackLarge}>{profile?.displayName?.[0] || 'U'}</div>
+                )}
+                {profile?.isVerified && (
+                  <span style={styles.verifiedBadgeLarge} title="Cuenta Verificada UPTC">
+                    <Award size={20} />
+                  </span>
+                )}
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{profile?.displayName}</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{profile?.email}</p>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                  <span className={`badge ${profile?.role === 'tutor' ? 'badge-accent' : 'badge-primary'}`}>
+                    Rol: {profile?.role === 'tutor' ? 'Tutor Colaborador' : 'Estudiante'}
+                  </span>
+                  <span className={`badge ${profile?.isVerified ? 'badge-success' : 'badge-danger'}`}>
+                    {profile?.isVerified ? 'Verificado' : 'No Verificado'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.profileDetailsList}>
+              <div style={styles.profileDetailItem}>
+                <span style={styles.detailTitle}>Fecha de Registro:</span>
+                <span>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              
+              <div style={styles.profileDetailItem}>
+                <span style={styles.detailTitle}>Biografía Académica:</span>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                  {profile?.biography || 'Sin biografía registrada. Regístrate como tutor para definir tu descripción.'}
+                </p>
+              </div>
+
+              {profile?.role === 'tutor' && (
+                <div style={styles.profileDetailItem}>
+                  <span style={styles.detailTitle}>Tarifa de Tutoría:</span>
+                  <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>
+                    ${profile?.hourlyRate ? profile.hourlyRate.toLocaleString() : '15,000'} COP / Hora
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {profile?.role === 'tutor' ? (
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => navigate('/dashboard')}
+                style={{ alignSelf: 'stretch' }}
+              >
+                Ir a gestionar mi agenda
+              </button>
+            ) : (
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => setActiveTab('verify')}
+                style={{ alignSelf: 'stretch' }}
+              >
+                Registrarme como Tutor (Subir Carné)
+              </button>
+            )}
+          </div>
+        )}
         {/* Tab 1: Current Tutoring Sessions */}
         {activeTab === 'classes' && (
           <div className="animate-fade-in" style={styles.cardsGrid}>
@@ -442,6 +522,52 @@ const styles = {
     borderRadius: '4px',
     fontSize: '0.8rem',
     color: 'var(--warning)'
+  },
+  profileHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%'
+  },
+  profileAvatarLarge: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    border: '2px solid var(--accent)'
+  },
+  avatarFallbackLarge: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--primary-light)',
+    color: 'var(--text-primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '2.5rem'
+  },
+  profileDetailsList: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    borderTop: '1px solid var(--border-glass)',
+    paddingTop: '1.25rem'
+  },
+  profileDetailItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.2rem',
+    textAlign: 'left'
+  },
+  detailTitle: {
+    fontSize: '0.75rem',
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    letterSpacing: '0.02em'
   }
 };
 

@@ -42,17 +42,19 @@ export function Navbar() {
           <div style={styles.userActions}>
             {user ? (
               <div style={styles.profileBadge}>
-                {profile?.isVerified && (
-                  <span title="Verificado" style={styles.verifiedBadge}>
-                    <Award size={14} color="var(--text-on-accent)" />
-                  </span>
-                )}
-                {profile?.photoURL ? (
-                  <img src={profile.photoURL} alt={profile.displayName} style={styles.avatar} />
-                ) : (
-                  <div style={styles.avatarFallback}>{profile?.displayName?.[0] || 'U'}</div>
-                )}
-                <span style={styles.userName}>{profile?.displayName?.split(' ')[0]}</span>
+                <NavLink to="/student" style={styles.profileLinkWrapper}>
+                  {profile?.photoURL ? (
+                    <img src={profile.photoURL} alt={profile.displayName} style={styles.avatar} />
+                  ) : (
+                    <div style={styles.avatarFallback}>{profile?.displayName?.[0] || 'U'}</div>
+                  )}
+                  {profile?.isVerified && (
+                    <span title="Verificado" style={styles.verifiedBadge}>
+                      <Award size={14} color="var(--text-on-accent)" />
+                    </span>
+                  )}
+                  <span style={styles.userName}>{profile?.displayName?.split(' ')[0]}</span>
+                </NavLink>
                 <button onClick={logout} style={styles.logoutBtn} title="Cerrar sesión">
                   <LogOut size={16} />
                 </button>
@@ -189,6 +191,14 @@ const styles = {
     borderRadius: '9999px',
     border: '1px solid var(--border-glass)',
     position: 'relative'
+  },
+  profileLinkWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    textDecoration: 'none',
+    color: 'inherit',
+    cursor: 'pointer'
   },
   avatar: {
     width: '28px',
