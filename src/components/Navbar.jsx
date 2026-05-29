@@ -1,10 +1,95 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Search, Calendar, BarChart3, User, LogOut, LogIn, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
+import { subscribeToSessions } from '../db/firebase';
+import { getLocalSessions, saveLocalSessions } from '../db/localDb';
 export function Navbar() {
   const { user, profile, logout } = useAuth();
+
+  useEffect(() => {
+    if (!profile) return;
+
+    // Request Notification permission on mount if logged in
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // Keep track of notified session IDs in localStorage to prevent duplicate/lost notifications (RF-23 persistent sync)
+    let notifiedSessionIds = new Set();
+    try {
+      const saved = localStorage.getItem('tutoruptc_notified_sessions');
+      if (saved) {
+        notifiedSessionIds = new Set(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Failed to load notified sessions:', e);
+    }
+
+    // Subscribe to Firestore sessions updates
+    const unsubscribe = subscribeToSessions(profile.uid, profile.role, async (sessionsList) => {
+      // Sync IndexedDB cache with Firestore
+      const currentSessions = await getLocalSessions();
+      
+      let updatedNotified = false;
+
+      // Determine if there are new sessions to notify
+      for (const session of sessionsList) {
+        if (!notifiedSessionIds.has(session.id)) {
+          // Check if the session is scheduled and in the future
+          let isFuture = true;
+          if (session.dateTime) {
+            isFuture = new Date(session.dateTime) > new Date();
+          } else if (session.date && session.time) {
+            isFuture = new Date(`${session.date}T${session.time}`) > new Date();
+          }
+
+          if (session.status === 'scheduled' && isFuture) {
+            const isTutor = profile.role === 'tutor';
+            const title = isTutor ? '¡Nueva solicitud de tutoría!' : '¡Tutoría agendada!';
+            const body = isTutor 
+              ? `El estudiante ${session.studentName} ha solicitado una tutoría de ${session.discipline} para el ${session.date} a las ${session.time}.`
+              : `Tu tutoría de ${session.discipline} con ${session.tutorName} ha sido confirmada para el ${session.date} a las ${session.time}.`;
+
+            // 1. Native Browser Notification (if permission granted)
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(title, {
+                  body,
+                  icon: '/favicon.ico'
+                });
+              } catch (e) {
+                console.error('Failed to trigger native notification:', e);
+              }
+            }
+            
+            // 2. In-App Alert
+            alert(`${title}\n\n${body}`);
+          }
+
+          // Mark as notified/processed to avoid notifying again
+          notifiedSessionIds.add(session.id);
+          updatedNotified = true;
+        }
+      }
+
+      if (updatedNotified) {
+        try {
+          localStorage.setItem('tutoruptc_notified_sessions', JSON.stringify(Array.from(notifiedSessionIds)));
+        } catch (e) {
+          console.error('Failed to save notified sessions:', e);
+        }
+      }
+      
+      // Update IndexedDB cache
+      await saveLocalSessions(sessionsList);
+      
+      // Dispatch custom event to notify other mounted views
+      window.dispatchEvent(new Event('tutoruptc_sessions_updated'));
+    });
+
+    return () => unsubscribe();
+  }, [profile]);
 
   return (
     <>

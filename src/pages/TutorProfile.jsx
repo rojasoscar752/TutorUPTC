@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, Share2, Award, Star, Video, MapPin, Calendar, Clock, ArrowLeft, Check, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocalFavorites, saveLocalFavorites } from '../db/localDb';
-import { fetchTutorByUsername } from '../db/firebase';
+import { fetchTutorByUsername, saveSession } from '../db/firebase';
 
 export function TutorProfile() {
   const { username } = useParams();
@@ -101,7 +101,7 @@ export function TutorProfile() {
   };
 
   // Submit Booking Request (RF-04)
-  const handleBooking = (e) => {
+  const handleBooking = async (e) => {
     e.preventDefault();
     if (!user) {
       navigate('/login');
@@ -113,10 +113,32 @@ export function TutorProfile() {
       return;
     }
 
-    // Save booking request to local storage mock (IndexedDB)
-    // In a fully online flow, we write to Firestore and it triggers Push Messaging.
-    // For now, we stub a success feedback loop.
-    setBookingSuccess(true);
+    const sessionId = `session_${Date.now()}`;
+    const newSession = {
+      id: sessionId,
+      tutorUid: tutor.uid,
+      tutorName: tutor.displayName,
+      studentUid: user.uid,
+      studentName: user.displayName || 'Estudiante UPTC',
+      discipline: tutor.discipline || 'Sistemas',
+      date: bookDate,
+      time: bookTime,
+      dateTime: `${bookDate}T${bookTime}:00`,
+      duration: Number(bookDuration),
+      modality: bookMode,
+      meetLink: bookMode === 'digital' ? 'https://meet.google.com/abc-defg-hij' : '',
+      location: bookMode === 'physical' ? 'Campus Central UPTC' : '',
+      status: 'scheduled',
+      paymentStatus: 'pending'
+    };
+
+    try {
+      await saveSession(newSession);
+      setBookingSuccess(true);
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      alert('Hubo un error al registrar la tutoría. Inténtalo de nuevo.');
+    }
   };
 
   return (

@@ -31,20 +31,24 @@ export function Sessions() {
   const [cancellationAuditWarning, setCancellationAuditWarning] = useState(false);
 
 
-
   // Load user sessions from localDB or Firebase
   useEffect(() => {
     const fetchSessions = async () => {
       const cached = await getLocalSessions();
       if (cached.length > 0) {
         setSessions(cached);
-        setSelectedSession(cached[0]);
+        setSelectedSession(prev => cached.find(s => s.id === prev?.id) || cached[0]);
       } else {
         setSessions([]);
         setSelectedSession(null);
       }
     };
     fetchSessions();
+
+    window.addEventListener('tutoruptc_sessions_updated', fetchSessions);
+    return () => {
+      window.removeEventListener('tutoruptc_sessions_updated', fetchSessions);
+    };
   }, []);
 
   // Load chat messages when selected session changes

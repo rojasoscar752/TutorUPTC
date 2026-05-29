@@ -8,9 +8,10 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore, doc, getDoc, setDoc,
-  collection, query, where, getDocs 
+  collection, query, where, getDocs, onSnapshot 
 } from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
+import { getLocalSessions, saveLocalSessions } from './localDb';
 
 // Firebase configuration from environment
 const firebaseConfig = {
@@ -253,6 +254,49 @@ export const fetchTutorByUsername = async (username) => {
       return querySnapshot.docs[0].data();
     }
     return null;
+  }
+};
+
+/**
+ * Saves a new tutoring session to Firestore or localStorage depending on mode.
+ */
+export const saveSession = async (sessionData) => {
+  if (useMock) {
+    const currentSessions = await getLocalSessions();
+    const updated = [...currentSessions, sessionData];
+    await saveLocalSessions(updated);
+  } else {
+    // Write to Firestore collection 'sessions'
+    const docRef = doc(db, 'sessions', sessionData.id);
+    await setDoc(docRef, sessionData);
+    
+    // Also save locally for offline access (sync cache)
+    const currentSessions = await getLocalSessions();
+    const updated = [...currentSessions, sessionData];
+    await saveLocalSessions(updated);
+  }
+};
+
+/**
+ * Listens to real-time session updates where the user is either the tutor or student.
+ */
+export const subscribeToSessions = (uid, role, callback) => {
+  if (useMock) {
+    return () => {};
+  } else {
+    const field = role === 'tutor' ? 'tutorUid' : 'studentUid';
+    const q = query(
+      collection(db, 'sessions'),
+      where(field, '==', uid)
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const list = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      callback(list);
+    });
   }
 };
 
