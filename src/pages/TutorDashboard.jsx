@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocalSessions, saveLocalSessions, saveLocalProfile } from '../db/localDb';
-import { saveUserProfile } from '../db/firebase';
+import { saveUserProfile, saveSession } from '../db/firebase';
 
 export function TutorDashboard() {
   const { profile } = useAuth();
@@ -103,19 +103,24 @@ export function TutorDashboard() {
 
   // Toggle Transaction Status (RF-07)
   const togglePaymentStatus = async (sessionId) => {
-    const updated = sessions.map(s => {
-      if (s.id === sessionId) {
-        const newStatus = s.paymentStatus === 'executed' ? 'pending' : 'executed';
-        return { ...s, paymentStatus: newStatus };
-      }
-      return s;
-    });
+    const sessionToUpdate = sessions.find(s => s.id === sessionId);
+    if (!sessionToUpdate) return;
 
-    setSessions(updated);
-    await saveLocalSessions(updated);
+    const newPaymentStatus = sessionToUpdate.paymentStatus === 'executed' ? 'pending' : 'executed';
+    const updatedSession = { ...sessionToUpdate, paymentStatus: newPaymentStatus };
+
+    const updatedList = sessions.map(s => s.id === sessionId ? updatedSession : s);
+    setSessions(updatedList);
+    
+    try {
+      // Update session in Firestore and local IndexedDB cache
+      await saveSession(updatedSession);
+    } catch (err) {
+      console.error('Error saving updated session payment in Firestore:', err);
+    }
     
     // Recalculate revenue
-    const newTotal = updated.reduce((accum, s) => {
+    const newTotal = updatedList.reduce((accum, s) => {
       if (s.paymentStatus === 'executed' && s.status !== 'cancelled') {
         const hourRatio = s.duration / 60;
         return accum + (hourRatio * 15000);

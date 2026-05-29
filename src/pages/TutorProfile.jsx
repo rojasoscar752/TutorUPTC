@@ -113,6 +113,12 @@ export function TutorProfile() {
       return;
     }
 
+    const generateMeetLink = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyz';
+      const part = (len) => Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      return `https://meet.google.com/${part(3)}-${part(4)}-${part(3)}`;
+    };
+
     const sessionId = `session_${Date.now()}`;
     const newSession = {
       id: sessionId,
@@ -126,7 +132,7 @@ export function TutorProfile() {
       dateTime: `${bookDate}T${bookTime}:00`,
       duration: Number(bookDuration),
       modality: bookMode,
-      meetLink: bookMode === 'digital' ? 'https://meet.google.com/abc-defg-hij' : '',
+      meetLink: bookMode === 'digital' ? generateMeetLink() : '',
       location: bookMode === 'physical' ? 'Campus Central UPTC' : '',
       status: 'scheduled',
       paymentStatus: 'pending'

@@ -6,7 +6,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useOfflineState } from '../context/OfflineContext';
 import { getLocalMessages, addLocalMessage, saveLocalSessions, getLocalSessions, saveLocalMessages } from '../db/localDb';
-import { subscribeToMessages, saveMessageToFirestore } from '../db/firebase';
+import { subscribeToMessages, saveMessageToFirestore, saveSession } from '../db/firebase';
 
 
 
@@ -135,24 +135,33 @@ export function Sessions() {
   const handleCancelSession = async () => {
     if (!selectedSession) return;
 
-    const updated = sessions.map(s => {
-      if (s.id === selectedSession.id) {
-        return { ...s, status: 'cancelled', cancelReason, cancelledLate: cancellationAuditWarning };
-      }
-      return s;
-    });
+    const cancelledSession = {
+      ...selectedSession,
+      status: 'cancelled',
+      cancelReason,
+      cancelledLate: cancellationAuditWarning
+    };
 
-    setSessions(updated);
-    setSelectedSession({ ...selectedSession, status: 'cancelled', cancelReason, cancelledLate: cancellationAuditWarning });
-    await saveLocalSessions(updated);
-    
-    setShowCancelModal(false);
-    setCancelReason('');
-    
-    alert(cancellationAuditWarning 
-      ? 'Sesión cancelada. Se ha registrado una penalización en tu bitácora por cancelar con menos de 120 minutos de antelación.'
-      : 'Sesión cancelada exitosamente. Se ha notificado al destinatario.'
-    );
+    try {
+      // 1. Write the updated cancellation status to Firestore (and local IndexedDB)
+      await saveSession(cancelledSession);
+
+      // 2. Update local React states
+      const updatedList = sessions.map(s => s.id === selectedSession.id ? cancelledSession : s);
+      setSessions(updatedList);
+      setSelectedSession(cancelledSession);
+
+      setShowCancelModal(false);
+      setCancelReason('');
+
+      alert(cancellationAuditWarning 
+        ? 'Sesión cancelada. Se ha registrado una penalización en tu bitácora por cancelar con menos de 120 minutos de antelación.'
+        : 'Sesión cancelada exitosamente. Se ha notificado al destinatario.'
+      );
+    } catch (err) {
+      console.error('Error updating session cancellation in Firestore:', err);
+      alert('Hubo un error al procesar la cancelación. Inténtalo de nuevo.');
+    }
   };
 
   // RF-08 & RF-14: Rating & Qualitative Review Submission

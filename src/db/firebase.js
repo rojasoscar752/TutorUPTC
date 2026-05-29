@@ -263,16 +263,30 @@ export const fetchTutorByUsername = async (username) => {
 export const saveSession = async (sessionData) => {
   if (useMock) {
     const currentSessions = await getLocalSessions();
-    const updated = [...currentSessions, sessionData];
+    const index = currentSessions.findIndex(s => s.id === sessionData.id);
+    let updated;
+    if (index > -1) {
+      updated = [...currentSessions];
+      updated[index] = sessionData;
+    } else {
+      updated = [...currentSessions, sessionData];
+    }
     await saveLocalSessions(updated);
   } else {
     // Write to Firestore collection 'sessions'
     const docRef = doc(db, 'sessions', sessionData.id);
     await setDoc(docRef, sessionData);
     
-    // Also save locally for offline access (sync cache)
+    // Also save locally for offline access (sync cache) and prevent duplicates
     const currentSessions = await getLocalSessions();
-    const updated = [...currentSessions, sessionData];
+    const index = currentSessions.findIndex(s => s.id === sessionData.id);
+    let updated;
+    if (index > -1) {
+      updated = [...currentSessions];
+      updated[index] = sessionData;
+    } else {
+      updated = [...currentSessions, sessionData];
+    }
     await saveLocalSessions(updated);
   }
 };
