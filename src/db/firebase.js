@@ -300,4 +300,41 @@ export const subscribeToSessions = (uid, role, callback) => {
   }
 };
 
+/**
+ * Saves a chat message to Firestore under the session's messages subcollection.
+ */
+export const saveMessageToFirestore = async (sessionId, msg) => {
+  if (useMock) return;
+  try {
+    const msgDocRef = doc(db, 'sessions', sessionId, 'messages', msg.id);
+    await setDoc(msgDocRef, msg);
+  } catch (e) {
+    console.error('Error saving message to Firestore:', e);
+  }
+};
+
+/**
+ * Subscribes to real-time message updates for a given session.
+ */
+export const subscribeToMessages = (sessionId, callback) => {
+  if (useMock) {
+    return () => {};
+  }
+  try {
+    const messagesCollectionRef = collection(db, 'sessions', sessionId, 'messages');
+    return onSnapshot(messagesCollectionRef, (snapshot) => {
+      const list = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      // Sort client-side by timestamp to prevent Firestore index requirements
+      list.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      callback(list);
+    });
+  } catch (e) {
+    console.error('Error subscribing to Firestore messages:', e);
+    return () => {};
+  }
+};
+
 export { auth, db, messaging, useMock };

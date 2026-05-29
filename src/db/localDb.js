@@ -101,6 +101,20 @@ export const addLocalMessage = async (conversationId, message) => {
 };
 
 /**
+ * Persists all messages for a specific conversation locally.
+ * @param {string} conversationId 
+ * @param {Array} messages 
+ */
+export const saveLocalMessages = async (conversationId, messages) => {
+  try {
+    const key = `${KEYS.MSG_PREFIX}${conversationId}`;
+    await set(key, messages);
+  } catch (error) {
+    console.error(`Error saving local messages for ${conversationId}:`, error);
+  }
+};
+
+/**
  * Persists the user's favorite tutor list.
  * @param {Array} favoriteIds 
  */

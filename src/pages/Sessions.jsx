@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineState } from '../context/OfflineContext';
-import { getLocalMessages, addLocalMessage, saveLocalSessions, getLocalSessions } from '../db/localDb';
+import { getLocalMessages, addLocalMessage, saveLocalSessions, getLocalSessions, saveLocalMessages } from '../db/localDb';
+import { subscribeToMessages, saveMessageToFirestore } from '../db/firebase';
 
 
 
@@ -51,18 +52,34 @@ export function Sessions() {
     };
   }, []);
 
-  // Load chat messages when selected session changes
+  // Load chat messages and subscribe to Firestore updates (RF-06 real-time sync)
   useEffect(() => {
-    if (selectedSession) {
-      const loadChat = async () => {
-        const msgs = await getLocalMessages(selectedSession.id);
-        setMessages(msgs);
-      };
-      loadChat();
-      setReviewSubmitted(false);
-      setComment('');
-      setRating(5);
+    if (!selectedSession) {
+      setMessages([]);
+      return;
     }
+
+    setReviewSubmitted(false);
+    setComment('');
+    setRating(5);
+
+    // Initial load from IndexedDB cache
+    const loadCachedChat = async () => {
+      const cachedMsgs = await getLocalMessages(selectedSession.id);
+      setMessages(cachedMsgs);
+    };
+    loadCachedChat();
+
+    // Subscribe to Firestore real-time updates
+    const unsubscribe = subscribeToMessages(selectedSession.id, async (firebaseMsgs) => {
+      if (firebaseMsgs.length > 0) {
+        setMessages(firebaseMsgs);
+        // Sync with IndexedDB
+        await saveLocalMessages(selectedSession.id, firebaseMsgs);
+      }
+    });
+
+    return () => unsubscribe();
   }, [selectedSession]);
 
   // Scroll to bottom of chat
@@ -70,14 +87,16 @@ export function Sessions() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send Message (RF-06)
+  // Send Message (RF-06 real-time sync to Firestore)
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedSession) return;
+    if (!newMessage.trim() || !selectedSession || !user) return;
 
+    const senderName = profile?.displayName || user.displayName || 'Usuario';
     const msg = {
-      id: `msg-${Date.now()}`,
-      senderName: 'Yo',
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      senderUid: user.uid,
+      senderName: senderName,
       text: newMessage,
       timestamp: new Date().toISOString()
     };
@@ -87,9 +106,11 @@ export function Sessions() {
     setMessages(updatedMsgs);
     setNewMessage('');
 
+    // Write message to Firestore database
+    await saveMessageToFirestore(selectedSession.id, msg);
+
     if (isOffline) {
       console.log('App is offline. Message enqueued for synchronization.');
-      // Background Sync trigger goes here in active SW
     }
   };
 
@@ -263,30 +284,33 @@ export function Sessions() {
             {/* Chat Board (RF-06) */}
             <div style={styles.chatBoard}>
               <div style={styles.messagesContainer}>
-                {messages.map(m => (
-                  <div 
-                    key={m.id} 
-                    style={{
-                      ...styles.messageWrapper,
-                      alignSelf: m.senderName === 'Yo' ? 'flex-end' : 'flex-start'
-                    }}
-                  >
+                {messages.map(m => {
+                  const isMe = m.senderUid === user?.uid || m.senderName === 'Yo';
+                  return (
                     <div 
+                      key={m.id} 
                       style={{
-                        ...styles.messageBox,
-                        backgroundColor: m.senderName === 'Yo' ? 'var(--primary)' : 'var(--bg-surface)',
-                        borderBottomRightRadius: m.senderName === 'Yo' ? '2px' : '12px',
-                        borderBottomLeftRadius: m.senderName === 'Yo' ? '12px' : '2px'
+                        ...styles.messageWrapper,
+                        alignSelf: isMe ? 'flex-end' : 'flex-start'
                       }}
                     >
-                      <span style={styles.senderLabel}>{m.senderName}</span>
-                      <p style={styles.messageText}>{m.text}</p>
-                      <span style={styles.messageTime}>
-                        {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                      <div 
+                        style={{
+                          ...styles.messageBox,
+                          backgroundColor: isMe ? 'var(--primary)' : 'var(--bg-surface)',
+                          borderBottomRightRadius: isMe ? '2px' : '12px',
+                          borderBottomLeftRadius: isMe ? '12px' : '2px'
+                        }}
+                      >
+                        <span style={styles.senderLabel}>{isMe ? 'Yo' : m.senderName}</span>
+                        <p style={styles.messageText}>{m.text}</p>
+                        <span style={styles.messageTime}>
+                          {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={chatEndRef} />
               </div>
 
