@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Calendar, Award, Upload, ShieldCheck, Clock, FileText, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getLocalFavorites, getLocalSessions } from '../db/localDb';
+import { getLocalFavorites, getLocalSessions, saveLocalProfile } from '../db/localDb';
+import { saveUserProfile } from '../db/firebase';
 
 // Reusable mock tutors to resolve bookmark lists
 const MOCK_TUTORS = [
@@ -59,6 +60,28 @@ export function StudentConsole() {
       setVerificationStatus('pending');
       setSelectedFile(null);
     }, 2500);
+  };
+
+  // Simulate admin card approval for presentations (RF-11/RF-12 demo)
+  const handleSimulateApproval = async () => {
+    if (!profile) return;
+    
+    const updatedProfile = {
+      ...profile,
+      role: 'tutor',
+      isVerified: true
+    };
+    
+    try {
+      await saveUserProfile(profile.uid, updatedProfile);
+      await saveLocalProfile(updatedProfile);
+      setVerificationStatus('approved');
+      
+      alert('¡Simulación Exitosa! El carné ha sido aprobado. Tu rol ahora es "Tutor" y estás verificado. La página se recargará para habilitar tu panel.');
+      window.location.reload();
+    } catch (err) {
+      console.error('Error simulating approval:', err);
+    }
   };
 
   return (
@@ -222,6 +245,16 @@ export function StudentConsole() {
                 <div style={styles.badgePreviewBox}>
                   <span>Estado: <strong>Pendiente de revisión</strong></span>
                 </div>
+                
+                {/* Simulation Button for University Demos */}
+                <button 
+                  type="button"
+                  className="btn btn-accent" 
+                  onClick={handleSimulateApproval}
+                  style={{ marginTop: '1.25rem', width: '100%', maxWidth: '280px', fontSize: '0.85rem' }}
+                >
+                  Simular Aprobación (Sustentación / Demo)
+                </button>
               </div>
             )}
 
