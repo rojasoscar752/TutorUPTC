@@ -5,18 +5,22 @@ import { useState, useEffect } from 'react';
  * Returns true if the client is offline, false if online.
  */
 export function useOffline() {
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline, setIsOffline] = useState(() => (
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  ));
 
   useEffect(() => {
-    const goOnline = () => setIsOffline(false);
-    const goOffline = () => setIsOffline(true);
+    const updateNetworkStatus = () => {
+      setIsOffline(!navigator.onLine);
+    };
 
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
+    updateNetworkStatus();
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
 
     return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', updateNetworkStatus);
+      window.removeEventListener('offline', updateNetworkStatus);
     };
   }, []);
 

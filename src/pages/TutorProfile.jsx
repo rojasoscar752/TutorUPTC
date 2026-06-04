@@ -1,19 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, Share2, Award, Star, Video, MapPin, Calendar, Clock, ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { Heart, Share2, Award, Star, Video, MapPin, Clock, ArrowLeft, Check, Sparkles, Wifi, WifiOff, Smartphone, Monitor } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useOfflineState } from '../context/OfflineContext';
 import { getLocalFavorites, saveLocalFavorites } from '../db/localDb';
 import { fetchTutorByUsername, saveSession } from '../db/firebase';
+
+const getNativeResourceInfo = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobile = /android|iphone|ipad|ipod|mobile/.test(userAgent);
+  const browser = userAgent.includes('edg')
+    ? 'Edge'
+    : userAgent.includes('chrome')
+      ? 'Chrome'
+      : userAgent.includes('firefox')
+        ? 'Firefox'
+        : userAgent.includes('safari')
+          ? 'Safari'
+          : 'Navegador web';
+
+  return {
+    device: isMobile ? 'Dispositivo movil' : 'Equipo de escritorio',
+    browser,
+    clipboard: Boolean(navigator.clipboard),
+    camera: Boolean(navigator.mediaDevices?.getUserMedia),
+    geolocation: Boolean(navigator.geolocation),
+    motion: typeof DeviceMotionEvent !== 'undefined'
+  };
+};
 
 export function TutorProfile() {
   const { username } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOffline } = useOfflineState();
   
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copyError, setCopyError] = useState('');
+  const [nativeInfo] = useState(getNativeResourceInfo);
+  const [nativeStatus, setNativeStatus] = useState({
+    camera: 'Listo para verificar camara.',
+    geolocation: 'Detecta tu ubicacion y escribe desde donde solicitas la tutoria.',
+    whatsapp: 'Comparte este perfil con alguien por WhatsApp.',
+    motion: 'Prueba si tu dispositivo esta estable para una tutoria digital.'
+  });
+  const [studentLocation, setStudentLocation] = useState('');
+  const [studentCoordinates, setStudentCoordinates] = useState(null);
+  const [deviceStability, setDeviceStability] = useState('');
+  const [motionReading, setMotionReading] = useState(null);
   
   // Booking Form State
   const [bookMode, setBookMode] = useState('digital');
@@ -93,11 +130,128 @@ export function TutorProfile() {
   };
 
   // Copy Profile Link (RF-17)
-  const copyProfileLink = () => {
+  const copyProfileLink = async () => {
     const profileUrl = `${window.location.origin}/tutor/${tutor.username}`;
-    navigator.clipboard.writeText(profileUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+
+    if (!navigator.clipboard) {
+      setCopyError('Copia el enlace manualmente desde la URL personalizada.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setCopiedLink(true);
+      setCopyError('');
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      console.error('Error copying profile URL:', err);
+      setCopyError('No se pudo copiar el enlace automáticamente.');
+    }
+  };
+
+  const updateNativeStatus = (resource, message) => {
+    setNativeStatus((current) => ({
+      ...current,
+      [resource]: message
+    }));
+  };
+
+  const verifyCameraAccess = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      updateNativeStatus('camera', 'Camara no soportada por este navegador.');
+      return;
+    }
+
+    updateNativeStatus('camera', 'Solicitando permiso de camara...');
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      stream.getTracks().forEach((track) => track.stop());
+      updateNativeStatus('camera', 'Camara disponible para tutorias digitales.');
+    } catch (err) {
+      console.error('Error checking camera:', err);
+      updateNativeStatus('camera', 'No se pudo acceder a la camara.');
+    }
+  };
+
+  const requestCampusLocation = () => {
+    if (!navigator.geolocation) {
+      updateNativeStatus('geolocation', 'Geolocalizacion no soportada por este navegador.');
+      return;
+    }
+
+    updateNativeStatus('geolocation', 'Solicitando ubicacion...');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude.toFixed(4);
+        const lng = position.coords.longitude.toFixed(4);
+        setStudentCoordinates({ lat, lng });
+        updateNativeStatus('geolocation', `Ubicacion detectada: ${lat}, ${lng}. Indica desde donde la estas pidiendo.`);
+      },
+      (err) => {
+        console.error('Error getting location:', err);
+        updateNativeStatus('geolocation', 'No se pudo obtener la ubicacion.');
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  };
+
+  const shareProfileOnWhatsApp = () => {
+    const profileUrl = `${window.location.origin}/tutor/${tutor.username}`;
+    const message = `Mira este perfil de tutor en TutorUPTC: ${tutor.displayName} - ${profileUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    updateNativeStatus('whatsapp', 'Se abrio WhatsApp para compartir el perfil.');
+  };
+
+  const readMotionSensor = async () => {
+    if (typeof DeviceMotionEvent === 'undefined') {
+      updateNativeStatus('motion', 'Sensor de movimiento no soportado.');
+      return;
+    }
+
+    try {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const permission = await DeviceMotionEvent.requestPermission();
+        if (permission !== 'granted') {
+          updateNativeStatus('motion', 'Permiso de movimiento no concedido.');
+          return;
+        }
+      }
+
+      updateNativeStatus('motion', 'Leyendo movimiento del dispositivo...');
+
+      let finished = false;
+      const finish = (message) => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener('devicemotion', handleMotion);
+        updateNativeStatus('motion', message);
+      };
+      const handleMotion = (event) => {
+        const acceleration = event.accelerationIncludingGravity;
+        if (!acceleration) {
+          finish('Sensor disponible, sin lectura de aceleracion.');
+          return;
+        }
+
+        const x = Number(acceleration.x || 0).toFixed(1);
+        const y = Number(acceleration.y || 0).toFixed(1);
+        const z = Number(acceleration.z || 0).toFixed(1);
+        const movementScore = Math.abs(Number(x)) + Math.abs(Number(y)) + Math.abs(Number(z));
+        const stabilityLabel = movementScore < 14 ? 'estable' : 'con movimiento';
+
+        setMotionReading({ x, y, z, stability: stabilityLabel });
+        finish(`Lectura registrada: x ${x}, y ${y}, z ${z}. Describe como usaras el dispositivo.`);
+      };
+
+      window.addEventListener('devicemotion', handleMotion);
+      setTimeout(() => finish('Sensor disponible, esperando movimiento.'), 2500);
+    } catch (err) {
+      console.error('Error reading motion sensor:', err);
+      updateNativeStatus('motion', 'No se pudo leer el sensor de movimiento.');
+    }
   };
 
   // Submit Booking Request (RF-04)
@@ -134,6 +288,10 @@ export function TutorProfile() {
       modality: bookMode,
       meetLink: bookMode === 'digital' ? generateMeetLink() : '',
       location: bookMode === 'physical' ? 'Campus Central UPTC' : '',
+      studentLocation: studentLocation.trim(),
+      studentCoordinates,
+      deviceStability: deviceStability.trim(),
+      motionReading,
       status: 'scheduled',
       paymentStatus: 'pending'
     };
@@ -207,6 +365,43 @@ export function TutorProfile() {
           <div style={styles.customUrlBox}>
             <span style={styles.urlLabel}>Enlace personalizado:</span>
             <code style={styles.urlValue}>/tutor/{tutor.username}</code>
+            {copyError && <span style={styles.copyError}>{copyError}</span>}
+          </div>
+
+          <div style={styles.nativeResourcesBox}>
+            <span style={styles.nativeTitle}>Recursos nativos activos</span>
+            <div style={styles.nativeResourceRow}>
+              {isOffline ? <WifiOff size={15} color="var(--danger)" /> : <Wifi size={15} color="var(--success)" />}
+              <span>{isOffline ? 'Sin conexion' : 'En linea'}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              {nativeInfo.device === 'Dispositivo movil' ? <Smartphone size={15} /> : <Monitor size={15} />}
+              <span>{nativeInfo.device}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <Share2 size={15} />
+              <span>{nativeInfo.browser}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <Check size={15} color={nativeInfo.clipboard ? 'var(--success)' : 'var(--text-muted)'} />
+              <span>Portapapeles {nativeInfo.clipboard ? 'disponible' : 'no disponible'}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <Video size={15} color={nativeInfo.camera ? 'var(--success)' : 'var(--text-muted)'} />
+              <span>Camara {nativeInfo.camera ? 'disponible' : 'no disponible'}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <MapPin size={15} color={nativeInfo.geolocation ? 'var(--success)' : 'var(--text-muted)'} />
+              <span>Geolocalizacion {nativeInfo.geolocation ? 'disponible' : 'no disponible'}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <Smartphone size={15} color={nativeInfo.motion ? 'var(--success)' : 'var(--text-muted)'} />
+              <span>Movimiento {nativeInfo.motion ? 'disponible' : 'no disponible'}</span>
+            </div>
+            <div style={styles.nativeResourceRow}>
+              <Share2 size={15} color="var(--success)" />
+              <span>WhatsApp para compartir perfil</span>
+            </div>
           </div>
         </section>
 
@@ -218,7 +413,7 @@ export function TutorProfile() {
             {/* Biography limited to 500 chars as per RF-02 */}
             <p style={styles.bioText}>{tutor.biography}</p>
             
-            <h3 style={styles.sectionHeader} style={{ marginTop: '1.5rem' }}>Disponibilidad Semanal</h3>
+            <h3 style={{ ...styles.sectionHeader, marginTop: '1.5rem' }}>Disponibilidad Semanal</h3>
             <div style={styles.availabilityGrid}>
               {tutor.availability.map((slot, i) => (
                 <div key={i} style={styles.availSlot}>
@@ -226,6 +421,88 @@ export function TutorProfile() {
                   <span>{slot}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="glass-card" style={styles.nativeCard}>
+            <h3 style={styles.sectionHeader}>Recursos Nativos Opcionales</h3>
+            <p style={styles.nativeHelpText}>
+              Usa estos recursos para enriquecer la solicitud antes de reservar con {tutor.displayName}.
+            </p>
+            <div style={styles.nativeActionGrid}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={styles.nativeActionBtn}
+                onClick={verifyCameraAccess}
+              >
+                <Video size={16} /> Verificar camara
+              </button>
+              <span style={styles.nativeActionStatus}>{nativeStatus.camera}</span>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={styles.nativeActionBtn}
+                onClick={requestCampusLocation}
+              >
+                <MapPin size={16} /> Usar ubicacion
+              </button>
+              <span style={styles.nativeActionStatus}>{nativeStatus.geolocation}</span>
+              {(studentCoordinates || nativeStatus.geolocation.includes('Solicitando')) && (
+                <div style={styles.nativeFieldWide}>
+                  <label htmlFor="student-location">¿Desde dónde solicitas?</label>
+                  <input
+                    id="student-location"
+                    className="input"
+                    type="text"
+                    value={studentLocation}
+                    onChange={(e) => setStudentLocation(e.target.value)}
+                    placeholder="Ej. Biblioteca central, casa, sala de estudio"
+                  />
+                  {studentCoordinates && (
+                    <span style={styles.nativeHint}>
+                      Coordenadas registradas: {studentCoordinates.lat}, {studentCoordinates.lng}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={styles.nativeActionBtn}
+                onClick={shareProfileOnWhatsApp}
+              >
+                <Share2 size={16} /> Compartir por WhatsApp
+              </button>
+              <span style={styles.nativeActionStatus}>{nativeStatus.whatsapp}</span>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={styles.nativeActionBtn}
+                onClick={readMotionSensor}
+              >
+                <Smartphone size={16} /> Leer movimiento
+              </button>
+              <span style={styles.nativeActionStatus}>{nativeStatus.motion}</span>
+              {motionReading && (
+                <div style={styles.nativeFieldWide}>
+                  <label htmlFor="device-stability">Uso previsto del dispositivo</label>
+                  <input
+                    id="device-stability"
+                    className="input"
+                    type="text"
+                    value={deviceStability}
+                    onChange={(e) => setDeviceStability(e.target.value)}
+                    placeholder="Ej. Lo apoyare en un escritorio para la videollamada"
+                  />
+                  <span style={styles.nativeHint}>
+                    Estabilidad estimada: {motionReading.stability}. Lectura x {motionReading.x}, y {motionReading.y}, z {motionReading.z}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -535,7 +812,36 @@ const styles = {
     fontFamily: 'monospace',
     fontWeight: '600'
   },
-  
+  copyError: {
+    color: 'var(--danger)',
+    display: 'block',
+    fontSize: '0.72rem',
+    marginTop: '0.35rem'
+  },
+  nativeResourcesBox: {
+    marginTop: '0.75rem',
+    padding: '0.75rem',
+    backgroundColor: 'hsla(45, 89%, 51%, 0.08)',
+    border: '1px solid hsla(45, 89%, 35%, 0.22)',
+    borderRadius: '6px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.45rem',
+    textAlign: 'left'
+  },
+  nativeTitle: {
+    color: 'var(--text-primary)',
+    fontSize: '0.78rem',
+    fontWeight: '700',
+    marginBottom: '0.15rem'
+  },
+  nativeResourceRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.45rem',
+    color: 'var(--text-secondary)',
+    fontSize: '0.75rem'
+  },
   // Right Column styles
   profileMain: {
     flex: 1,
@@ -545,6 +851,46 @@ const styles = {
   },
   bioCard: {
     padding: '1.5rem'
+  },
+  nativeCard: {
+    padding: '1.5rem'
+  },
+  nativeHelpText: {
+    marginBottom: '1rem',
+    fontSize: '0.88rem',
+    color: 'var(--text-secondary)'
+  },
+  nativeActionGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(170px, 0.65fr) minmax(0, 1fr)',
+    gap: '0.75rem',
+    alignItems: 'center'
+  },
+  nativeActionBtn: {
+    width: '100%',
+    justifyContent: 'flex-start',
+    padding: '0.65rem 0.85rem',
+    fontSize: '0.85rem'
+  },
+  nativeActionStatus: {
+    color: 'var(--text-secondary)',
+    fontSize: '0.84rem',
+    lineHeight: '1.4'
+  },
+  nativeFieldWide: {
+    gridColumn: '1 / -1',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.4rem',
+    padding: '0.75rem',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.5)',
+    border: '1px solid var(--border-glass)',
+    borderRadius: 'var(--radius-sm)'
+  },
+  nativeHint: {
+    color: 'var(--text-muted)',
+    fontSize: '0.78rem',
+    lineHeight: '1.35'
   },
   sectionHeader: {
     fontSize: '1.15rem',

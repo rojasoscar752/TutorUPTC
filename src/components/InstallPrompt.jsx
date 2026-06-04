@@ -1,16 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, Share, X, PlusSquare } from 'lucide-react';
+
+const isIOSSafari = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(userAgent);
+  const isSafari = userAgent.includes('safari') && !userAgent.includes('crios') && !userAgent.includes('chrome');
+
+  return isIOS && isSafari;
+};
 
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isIOS] = useState(isIOSSafari);
+  const [showPrompt, setShowPrompt] = useState(() => {
+    if (!isIOSSafari()) return false;
+
+    const visitCount = parseInt(sessionStorage.getItem('tutoruptc_visits') || '0', 10);
+    const newCount = visitCount + 1;
+    sessionStorage.setItem('tutoruptc_visits', newCount.toString());
+
+    return newCount >= 1;
+  });
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
     // 1. Check if the app is already running in standalone mode (installed)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                          window.navigator.standalone === true;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     
     if (isStandalone) return;
 
@@ -23,28 +38,10 @@ export function InstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // 3. Detect iOS Safari UA (RNF-03)
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const detectIOS = /iphone|ipad|ipod/.test(userAgent);
-    const detectSafari = userAgent.includes('safari') && !userAgent.includes('crios') && !userAgent.includes('chrome');
-
-    if (detectIOS && detectSafari) {
-      setIsIOS(true);
-      
-      // Setup simple session counter to mimic "2 visits in 5 minutes" check or just show after a small delay
-      const visitCount = parseInt(sessionStorage.getItem('tutoruptc_visits') || '0', 10);
-      const newCount = visitCount + 1;
-      sessionStorage.setItem('tutoruptc_visits', newCount.toString());
-      
-      if (newCount >= 1) { // Show on first visit for demonstrability, can be configured
-        setShowPrompt(true);
-      }
-    }
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     };
-  }, []);
+  }, [isIOS]);
 
   const handleInstallClick = async () => {
     if (isIOS) {
