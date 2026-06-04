@@ -61,6 +61,11 @@ const mockListeners = new Set();
 
 // Load cached mock login on startup
 try {
+  if (!useMock) {
+    localStorage.removeItem(MOCK_USER_STORAGE_KEY);
+    localStorage.removeItem('tutoruptc_profile_doc_t2');
+  }
+
   const saved = localStorage.getItem(MOCK_USER_STORAGE_KEY);
   if (saved) {
     mockUser = JSON.parse(saved);
@@ -94,16 +99,17 @@ export const subscribeToAuthChanges = (callback) => {
 
 /**
  * Sign in using Google Single-Sign-On.
- * In mock mode, signs in as a pre-configured UPTC student/tutor.
+ * In mock mode, signs in as a generic demo student.
  */
 export const signInWithGoogle = async () => {
   if (useMock) {
-    // Generate a default mock UPTC student profile
+    // Generate a default mock UPTC student profile.
+    // Real registration only happens when Vite can read Firebase credentials.
     const demoUser = {
-      uid: 't2', // Matches Oscar Ivan Rojas in mock listings
-      email: 'oscar.rojas01@uptc.edu.co',
-      displayName: 'Oscar Ivan Rojas cuesta',
-      photoURL: '/oscar.jpg',
+      uid: 'demo-student',
+      email: 'estudiante.demo@uptc.edu.co',
+      displayName: 'Estudiante Demo',
+      photoURL: '',
       isAnonymous: false
     };
     
@@ -144,13 +150,13 @@ export const fetchUserProfile = async (uid) => {
       return JSON.parse(localData);
     }
     
-    // If logging in for the first time, return a default mock student profile matching UID t2
-    if (uid === 't2') {
+    // If logging in for the first time, return a default mock student profile.
+    if (uid === 'demo-student') {
       return {
-        uid: 't2',
-        email: 'oscar.rojas01@uptc.edu.co',
-        displayName: 'Oscar Ivan Rojas cuesta',
-        photoURL: '/oscar.jpg',
+        uid: 'demo-student',
+        email: 'estudiante.demo@uptc.edu.co',
+        displayName: 'Estudiante Demo',
+        photoURL: '',
         role: 'student',
         isVerified: false,
         createdAt: new Date().toISOString(),
