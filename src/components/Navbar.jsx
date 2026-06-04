@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Search, Calendar, BarChart3, User, LogOut, LogIn, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import tutorLogo from "../assets/TUTOR.png";
 import { subscribeToSessions } from '../db/firebase';
 import { getLocalSessions, saveLocalSessions } from '../db/localDb';
 export function Navbar() {
@@ -97,8 +98,8 @@ export function Navbar() {
       <header style={styles.desktopHeader}>
         <div style={styles.headerContainer}>
           <NavLink to="/" style={styles.logoGroup}>
-            <div style={styles.logoSymbol}>T</div>
-            <span style={styles.logoText}>Tutor<span style={{ color: 'var(--accent)' }}>UPTC</span></span>
+            <img src={tutorLogo} alt="TutorUPTC" style={styles.logoSymbol}/>
+          <span style={styles.logoText}> Tutor<span style={{ color: 'var(--accent)' }}>UPTC</span></span>
           </NavLink>
 
           <nav style={styles.desktopNav}>

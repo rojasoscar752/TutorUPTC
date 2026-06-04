@@ -51,8 +51,8 @@ export function Home() {
   return (
     <div className="animate-fade-in" style={styles.container}>
       <header style={styles.header}>
-        <h1>Encuentra tu Tutor UPTC</h1>
-        <p>Aprende de compañeros destacados de tu facultad y supera tus metas académicas.</p>
+        <h1>Encuentra tu Tutor</h1>
+        <p>Aprende de compañeros destacados de tu universidad y supera tus metas académicas.</p>
       </header>
 
       {/* Search and Filters Bar */}
@@ -61,7 +61,7 @@ export function Home() {
           <Search size={20} color="var(--text-muted)" style={{ marginLeft: '1rem' }} />
           <input 
             type="text" 
-            placeholder="Buscar por materia (ej. Cálculo, React) o tutor..." 
+            placeholder="Buscar por materia (ej. Cálculo, Bases de datos) o por nombre de tutor." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}

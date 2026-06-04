@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import tutorLogo from "../assets/TUTOR.png";;
 
 export function Login() {
   const { login } = useAuth();
@@ -27,8 +28,8 @@ export function Login() {
     <div style={styles.container} className="animate-fade-in">
       <div className="glass-card" style={styles.loginCard}>
         <div style={styles.header}>
-          <div style={styles.logoBadge}>T</div>
-          <h2 style={styles.title}>Tutor<span style={{ color: 'var(--accent)' }}>UPTC</span></h2>
+          <img src={tutorLogo} alt="Tutor" style={styles.logoBadge}/>
+          <h2 style={styles.title}>TuTor<span style={{ color: 'var(--accent)' }}>UPTC</span></h2>
           <p style={styles.subtitle}>
             Portal de Tutorías Académicas entre Estudiantes
           </p>
@@ -46,7 +47,7 @@ export function Login() {
 
         <div style={styles.actionsBox}>
           <p style={styles.introText}>
-            Accede con tu **correo institucional de la UPTC** (@uptc.edu.co) para registrarte, explorar tutores calificados o inscribirte como colaborador.
+            Accede con tu correo institucional de la UPTC (@uptc.edu.co) para registrarte y explorar los tutores calificados.
           </p>
 
           <button 
@@ -62,8 +63,7 @@ export function Login() {
 
         <div style={styles.footer}>
           <p style={styles.disclaimer}>
-            Al ingresar, aceptas los términos de convivencia de la institución. Tu perfil será administrado 
-            bajo el control de la bitácora académica TutorUPTC v1.0.
+            Todos los derechos reservados
           </p>
         </div>
       </div>
