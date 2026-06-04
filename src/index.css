@@ -1,28 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Color Palette (UPTC Brand Forest Green & Gold Accent) */
-  --primary-hue: 130;
-  --primary: hsl(var(--primary-hue), 57%, 14%);      /* Dark forest green #0f3816 */
-  --primary-light: hsl(var(--primary-hue), 48%, 22%);
-  --primary-vibrant: hsl(var(--primary-hue), 55%, 35%);
-  --accent: hsl(45, 85%, 52%);                      /* Gold accent #e5b822 */
-  --accent-light: hsl(45, 90%, 65%);
-  --accent-dark: hsl(45, 90%, 40%);
+  /* Warm academic palette */
+  --primary-hue: 38;
+  --primary: hsl(28, 18%, 8%);
+  --primary-light: hsl(30, 14%, 16%);
+  --primary-vibrant: hsl(36, 65%, 41%);
+  --accent: hsl(45, 89%, 51%);
+  --accent-light: hsl(45, 95%, 65%);
+  --accent-dark: hsl(40, 82%, 40%);
 
-  /* Neutral Dark Mode System */
-  --bg-base: hsl(220, 24%, 7%);
-  --bg-surface: hsl(220, 20%, 12%);
-  --bg-card: hsla(220, 20%, 15%, 0.7);
-  --border-glass: hsla(0, 0%, 100%, 0.08);
+  /* Neutral warm surfaces */
+  --bg-base: hsl(38, 45%, 88%);
+  --bg-surface: hsl(42, 45%, 95%);
+  --bg-card: hsl(42, 47%, 97%);
+  --border-glass: hsla(31, 20%, 18%, 0.14);
   --border-focus: var(--accent);
   
   /* Text Colors */
-  --text-primary: hsl(0, 0%, 96%);
-  --text-secondary: hsl(220, 10%, 75%);
-  --text-muted: hsl(220, 10%, 55%);
-  --text-on-primary: hsl(0, 0%, 100%);
-  --text-on-accent: hsl(220, 24%, 7%);
+  --text-primary: hsl(28, 18%, 8%);
+  --text-secondary: hsl(30, 9%, 28%);
+  --text-muted: hsl(31, 8%, 45%);
+  --text-on-primary: hsl(42, 47%, 97%);
+  --text-on-accent: hsl(28, 18%, 8%);
 
   /* UI Feedback States */
   --success: hsl(145, 63%, 42%);
@@ -38,9 +38,9 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-xl: 32px;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 8px rgba(43, 34, 22, 0.08);
+  --shadow-md: 0 8px 24px rgba(43, 34, 22, 0.12);
+  --shadow-lg: 0 16px 40px rgba(43, 34, 22, 0.16);
   
   /* Touch target standard (WCAG 2.5.5) */
   --touch-target: 44px;
@@ -56,7 +56,9 @@
 
 html, body {
   font-family: var(--font-sans);
-  background-color: var(--bg-base);
+  background:
+    radial-gradient(circle at top left, hsla(45, 89%, 51%, 0.18), transparent 28rem),
+    linear-gradient(180deg, hsl(42, 52%, 91%) 0%, var(--bg-base) 45%, hsl(36, 36%, 84%) 100%);
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
@@ -72,11 +74,11 @@ html, body {
   background: var(--bg-base);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-light);
+  background: hsl(33, 20%, 52%);
   border-radius: var(--radius-sm);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-vibrant);
+  background: var(--primary-light);
 }
 
 /* Page Layout & Container */
@@ -120,10 +122,8 @@ main {
 h1 {
   font-size: 2.25rem;
   font-weight: 800;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 0;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -144,11 +144,8 @@ p {
   font-size: 0.95rem;
 }
 
-/* Glassmorphism Styling */
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   padding: 1.5rem;
@@ -160,8 +157,8 @@ p {
 
 .glass-card:hover {
   transform: translateY(-4px);
-  border-color: hsla(var(--primary-hue), 57%, 40%, 0.3);
-  box-shadow: 0 12px 30px rgba(15, 56, 22, 0.25);
+  border-color: hsla(45, 89%, 35%, 0.35);
+  box-shadow: 0 12px 30px rgba(43, 34, 22, 0.15);
 }
 
 /* Buttons System */
@@ -183,38 +180,39 @@ p {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  background: var(--primary);
   color: var(--text-on-primary);
-  border: 1px solid hsla(var(--primary-hue), 50%, 40%, 0.3);
-  box-shadow: 0 4px 12px rgba(15, 56, 22, 0.3);
+  border: 1px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(43, 34, 22, 0.16);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-vibrant), var(--primary-light));
+  background: var(--primary-light);
   transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(15, 56, 22, 0.5);
+  box-shadow: 0 6px 16px rgba(43, 34, 22, 0.22);
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  background: var(--accent);
   color: var(--text-on-accent);
-  box-shadow: 0 4px 12px rgba(229, 184, 34, 0.2);
+  border: 1px solid hsla(40, 82%, 28%, 0.22);
+  box-shadow: 0 4px 12px rgba(177, 130, 14, 0.18);
 }
 
 .btn-accent:hover {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  background: var(--accent-dark);
   transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(229, 184, 34, 0.4);
+  box-shadow: 0 6px 16px rgba(177, 130, 14, 0.28);
 }
 
 .btn-secondary {
-  background: hsla(0, 0%, 100%, 0.05);
+  background: hsla(42, 47%, 97%, 0.72);
   color: var(--text-primary);
   border: 1px solid var(--border-glass);
 }
 
 .btn-secondary:hover {
-  background: hsla(0, 0%, 100%, 0.1);
+  background: hsl(42, 47%, 97%);
   border-color: var(--text-muted);
 }
 
@@ -251,7 +249,7 @@ label {
 
 .input {
   min-height: var(--touch-target);
-  background: hsla(0, 0%, 0%, 0.3);
+  background: hsl(41, 44%, 92%);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
@@ -265,7 +263,7 @@ label {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px hsla(45, 85%, 52%, 0.15);
-  background: hsla(0, 0%, 0%, 0.5);
+  background: hsl(42, 47%, 97%);
 }
 
 /* Badge system */
@@ -282,25 +280,27 @@ label {
 }
 
 .badge-primary {
-  background: hsla(var(--primary-hue), 50%, 30%, 0.4);
-  color: hsl(var(--primary-hue), 80%, 75%);
-  border: 1px solid hsla(var(--primary-hue), 50%, 40%, 0.3);
+  background: hsla(28, 18%, 8%, 0.08);
+  color: var(--primary);
+  border: 1px solid hsla(28, 18%, 8%, 0.16);
 }
 
 .badge-accent {
   background: hsla(45, 85%, 52%, 0.15);
-  color: var(--accent-light);
+  color: hsl(40, 82%, 30%);
   border: 1px solid hsla(45, 85%, 52%, 0.25);
 }
 
 .badge-success {
   background: hsla(145, 63%, 42%, 0.15);
-  color: hsl(145, 80%, 70%);
+  color: hsl(145, 55%, 25%);
+  border: 1px solid hsla(145, 55%, 25%, 0.18);
 }
 
 .badge-danger {
   background: hsla(354, 70%, 54%, 0.15);
-  color: hsl(354, 90%, 75%);
+  color: hsl(354, 62%, 38%);
+  border: 1px solid hsla(354, 62%, 38%, 0.18);
 }
 
 /* Animations */

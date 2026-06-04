@@ -207,7 +207,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(28, 23, 16, 0.68)',
     zIndex: 1200,
     display: 'flex',
     alignItems: 'center',
@@ -261,7 +261,7 @@ const styles = {
     display: 'inline-flex',
     verticalAlign: 'middle',
     marginLeft: '0.5rem',
-    backgroundColor: 'hsla(0, 0%, 100%, 0.05)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     padding: '0.2rem',
     borderRadius: '4px'
   },

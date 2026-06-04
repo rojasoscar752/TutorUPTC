@@ -108,12 +108,12 @@ const styles = {
     fontWeight: '800',
     fontSize: '2rem',
     marginBottom: '0.5rem',
-    boxShadow: '0 4px 12px rgba(15, 56, 22, 0.3)'
+    boxShadow: '0 4px 12px rgba(43, 34, 22, 0.16)'
   },
   title: {
     fontSize: '1.8rem',
     fontWeight: '800',
-    letterSpacing: '-0.02em'
+    letterSpacing: 0
   },
   subtitle: {
     fontSize: '0.9rem',
@@ -135,7 +135,7 @@ const styles = {
     backgroundColor: 'hsla(354, 70%, 54%, 0.15)',
     border: '1px solid var(--danger)',
     borderRadius: 'var(--radius-sm)',
-    color: 'hsl(354, 90%, 75%)',
+    color: 'hsl(354, 62%, 38%)',
     padding: '0.75rem 1rem',
     fontSize: '0.8rem',
     textAlign: 'left',

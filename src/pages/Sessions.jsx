@@ -194,7 +194,7 @@ export function Sessions() {
                 style={{
                   ...styles.sessionItem,
                   borderColor: selectedSession?.id === s.id ? 'var(--accent)' : 'var(--border-glass)',
-                  backgroundColor: selectedSession?.id === s.id ? 'hsla(45, 85%, 52%, 0.05)' : 'transparent'
+                  backgroundColor: selectedSession?.id === s.id ? 'hsla(45, 89%, 51%, 0.14)' : 'transparent'
                 }}
                 onClick={() => setSelectedSession(s)}
               >
@@ -312,8 +312,8 @@ export function Sessions() {
                         }}
                       >
                         <span style={styles.senderLabel}>{isMe ? 'Yo' : m.senderName}</span>
-                        <p style={styles.messageText}>{m.text}</p>
-                        <span style={styles.messageTime}>
+                        <p style={isMe ? styles.messageTextOwn : styles.messageText}>{m.text}</p>
+                        <span style={isMe ? styles.messageTimeOwn : styles.messageTime}>
                           {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -414,7 +414,7 @@ export function Sessions() {
                   <AlertCircle size={20} color="var(--danger)" />
                   <div>
                     <strong>Cancelación de Auditoría Tardía</strong>
-                    <p style={{ fontSize: '0.75rem', margin: 0, color: 'hsl(354, 90%, 80%)' }}>
+                    <p style={{ fontSize: '0.75rem', margin: 0, color: 'hsl(354, 62%, 38%)' }}>
                       Faltan menos de 120 minutos para el encuentro. Esta acción quedará anotada en tu expediente histórico.
                     </p>
                   </div>
@@ -548,7 +548,7 @@ const styles = {
     color: 'var(--danger)'
   },
   linksPanel: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border-glass)',
     padding: '1rem'
@@ -568,7 +568,7 @@ const styles = {
     fontSize: '0.85rem'
   },
   linkHref: {
-    color: 'var(--accent-light)',
+    color: 'var(--primary-vibrant)',
     wordBreak: 'break-all',
     fontWeight: '600'
   },
@@ -578,7 +578,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: '350px',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.68)',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border-glass)',
     overflow: 'hidden'
@@ -616,9 +616,20 @@ const styles = {
     color: 'var(--text-primary)',
     wordBreak: 'break-word'
   },
+  messageTextOwn: {
+    fontSize: '0.85rem',
+    color: 'var(--text-on-primary)',
+    wordBreak: 'break-word'
+  },
   messageTime: {
     fontSize: '0.6rem',
     color: 'var(--text-muted)',
+    alignSelf: 'flex-end',
+    marginTop: '0.1rem'
+  },
+  messageTimeOwn: {
+    fontSize: '0.6rem',
+    color: 'hsla(42, 47%, 97%, 0.72)',
     alignSelf: 'flex-end',
     marginTop: '0.1rem'
   },
@@ -718,7 +729,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(28, 23, 16, 0.68)',
     zIndex: 1200,
     display: 'flex',
     alignItems: 'center',

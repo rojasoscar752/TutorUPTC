@@ -476,7 +476,7 @@ const styles = {
     fontSize: '0.85rem'
   },
   rateContainer: {
-    backgroundColor: 'hsla(0, 0%, 100%, 0.04)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     border: '1px solid var(--border-glass)',
     borderRadius: 'var(--radius-sm)',
     padding: '0.75rem',
@@ -519,7 +519,7 @@ const styles = {
   customUrlBox: {
     marginTop: '1rem',
     padding: '0.6rem',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     borderRadius: '6px',
     border: '1px solid var(--border-glass)',
     fontSize: '0.75rem',
@@ -531,7 +531,7 @@ const styles = {
     marginBottom: '0.2rem'
   },
   urlValue: {
-    color: 'var(--accent-light)',
+    color: 'var(--primary)',
     fontFamily: 'monospace',
     fontWeight: '600'
   },
@@ -569,8 +569,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.4rem',
-    backgroundColor: 'hsla(var(--primary-hue), 50%, 20%, 0.25)',
-    border: '1px solid hsla(var(--primary-hue), 50%, 30%, 0.3)',
+    backgroundColor: 'hsla(45, 89%, 51%, 0.12)',
+    border: '1px solid hsla(45, 89%, 35%, 0.24)',
     borderRadius: '6px',
     padding: '0.4rem 0.8rem',
     fontSize: '0.8rem',
@@ -614,7 +614,7 @@ const styles = {
     color: 'var(--text-muted)',
     lineHeight: '1.4',
     padding: '0.5rem',
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     borderRadius: '6px',
     marginBottom: '0.5rem'
   },
@@ -643,7 +643,7 @@ const styles = {
     justifyContent: 'center',
     fontSize: '1.75rem',
     fontWeight: 'bold',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+    boxShadow: '0 4px 12px rgba(43, 34, 22, 0.16)'
   },
   
   // Reviews List Styles

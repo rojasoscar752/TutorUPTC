@@ -21,17 +21,17 @@ export function OfflineBanner() {
 
 const styles = {
   bannerContainer: {
-    backgroundColor: 'hsla(38, 92%, 50%, 0.15)',
+    backgroundColor: 'hsl(42, 47%, 97%)',
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
     borderBottom: '1px solid hsla(38, 92%, 50%, 0.3)',
-    color: 'hsl(38, 95%, 70%)',
+    color: 'hsl(40, 82%, 30%)',
     padding: '0.6rem 1rem',
     width: '100%',
     zIndex: 1100,
     position: 'sticky',
     top: 0,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    boxShadow: '0 4px 12px rgba(43, 34, 22, 0.12)'
   },
   bannerContent: {
     display: 'flex',

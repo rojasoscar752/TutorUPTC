@@ -200,7 +200,7 @@ export function TutorDashboard() {
         </div>
 
         <div className="glass-card" style={styles.statCard}>
-          <Calendar size={24} color="var(--accent-light)" />
+          <Calendar size={24} color="var(--accent)" />
           <div>
             <h4 style={styles.statVal}>
               {sessions.filter(s => s.status === 'scheduled').length} activas
@@ -600,7 +600,7 @@ const styles = {
     backgroundColor: 'hsla(145, 63%, 42%, 0.15)',
     border: '1px solid var(--success)',
     borderRadius: 'var(--radius-sm)',
-    color: 'hsl(145, 80%, 75%)',
+    color: 'hsl(145, 55%, 25%)',
     padding: '0.75rem 1rem',
     fontSize: '0.85rem',
     marginBottom: '1rem'
@@ -624,7 +624,7 @@ const styles = {
     marginTop: '-0.3rem'
   },
   calendarConfigSection: {
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     borderRadius: 'var(--radius-sm)',
     padding: '1.25rem',
     border: '1px solid var(--border-glass)'
@@ -675,7 +675,7 @@ const styles = {
   disclaimerBox: {
     marginTop: '1.5rem',
     padding: '0.75rem',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'hsla(38, 45%, 88%, 0.58)',
     borderRadius: '6px',
     border: '1px solid var(--border-glass)',
     color: 'var(--text-muted)',
@@ -690,7 +690,7 @@ if (typeof document !== 'undefined') {
   styleEl.innerHTML = `
     @media (min-width: 768px) {
       tr[class*="trBody"]:hover {
-        background-color: hsla(0, 0%, 100%, 0.02) !important;
+        background-color: hsla(45, 89%, 51%, 0.08) !important;
       }
     }
   `;

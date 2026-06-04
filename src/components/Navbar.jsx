@@ -238,7 +238,7 @@ const styles = {
     fontSize: '1.25rem',
     fontWeight: '800',
     color: 'var(--text-primary)',
-    letterSpacing: '-0.01em'
+    letterSpacing: 0
   },
   desktopNav: {
     display: 'flex',
@@ -260,7 +260,7 @@ const styles = {
   },
   navLinkActive: {
     color: 'var(--accent)',
-    backgroundColor: 'hsla(45, 85%, 52%, 0.08)',
+    backgroundColor: 'hsla(45, 89%, 51%, 0.16)',
     borderBottom: '2px solid var(--accent)'
   },
   userActions: {
@@ -271,7 +271,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.6rem',
-    backgroundColor: 'hsla(0, 0%, 100%, 0.04)',
+    backgroundColor: 'hsla(42, 47%, 97%, 0.72)',
     padding: '0.4rem 0.8rem',
     borderRadius: '9999px',
     border: '1px solid var(--border-glass)',
@@ -351,7 +351,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-around',
     zIndex: 1000,
-    boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 -4px 16px rgba(43, 34, 22, 0.12)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)'
   },
