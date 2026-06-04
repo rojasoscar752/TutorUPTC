@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, Share2, Award, Star, Video, MapPin, Clock, ArrowLeft, Check, Sparkles, Wifi, WifiOff, Smartphone, Monitor } from 'lucide-react';
+import { Heart, Share2, Award, Star, Video, MapPin, Clock, ArrowLeft, Check, Sparkles, Wifi, WifiOff, Monitor } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineState } from '../context/OfflineContext';
 import { getLocalFavorites, saveLocalFavorites } from '../db/localDb';
@@ -24,8 +24,7 @@ const getNativeResourceInfo = () => {
     browser,
     clipboard: Boolean(navigator.clipboard),
     camera: Boolean(navigator.mediaDevices?.getUserMedia),
-    geolocation: Boolean(navigator.geolocation),
-    motion: typeof DeviceMotionEvent !== 'undefined'
+    geolocation: Boolean(navigator.geolocation)
   };
 };
 
@@ -44,13 +43,10 @@ export function TutorProfile() {
   const [nativeStatus, setNativeStatus] = useState({
     camera: 'Listo para verificar camara.',
     geolocation: 'Detecta tu ubicacion y escribe desde donde solicitas la tutoria.',
-    whatsapp: 'Comparte este perfil con alguien por WhatsApp.',
-    motion: 'Prueba si tu dispositivo esta estable para una tutoria digital.'
+    whatsapp: 'Comparte este perfil con alguien por WhatsApp.'
   });
   const [studentLocation, setStudentLocation] = useState('');
   const [studentCoordinates, setStudentCoordinates] = useState(null);
-  const [deviceStability, setDeviceStability] = useState('');
-  const [motionReading, setMotionReading] = useState(null);
   
   // Booking Form State
   const [bookMode, setBookMode] = useState('digital');
@@ -205,55 +201,6 @@ export function TutorProfile() {
     updateNativeStatus('whatsapp', 'Se abrio WhatsApp para compartir el perfil.');
   };
 
-  const readMotionSensor = async () => {
-    if (typeof DeviceMotionEvent === 'undefined') {
-      updateNativeStatus('motion', 'Sensor de movimiento no soportado.');
-      return;
-    }
-
-    try {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        const permission = await DeviceMotionEvent.requestPermission();
-        if (permission !== 'granted') {
-          updateNativeStatus('motion', 'Permiso de movimiento no concedido.');
-          return;
-        }
-      }
-
-      updateNativeStatus('motion', 'Leyendo movimiento del dispositivo...');
-
-      let finished = false;
-      const finish = (message) => {
-        if (finished) return;
-        finished = true;
-        window.removeEventListener('devicemotion', handleMotion);
-        updateNativeStatus('motion', message);
-      };
-      const handleMotion = (event) => {
-        const acceleration = event.accelerationIncludingGravity;
-        if (!acceleration) {
-          finish('Sensor disponible, sin lectura de aceleracion.');
-          return;
-        }
-
-        const x = Number(acceleration.x || 0).toFixed(1);
-        const y = Number(acceleration.y || 0).toFixed(1);
-        const z = Number(acceleration.z || 0).toFixed(1);
-        const movementScore = Math.abs(Number(x)) + Math.abs(Number(y)) + Math.abs(Number(z));
-        const stabilityLabel = movementScore < 14 ? 'estable' : 'con movimiento';
-
-        setMotionReading({ x, y, z, stability: stabilityLabel });
-        finish(`Lectura registrada: x ${x}, y ${y}, z ${z}. Describe como usaras el dispositivo.`);
-      };
-
-      window.addEventListener('devicemotion', handleMotion);
-      setTimeout(() => finish('Sensor disponible, esperando movimiento.'), 2500);
-    } catch (err) {
-      console.error('Error reading motion sensor:', err);
-      updateNativeStatus('motion', 'No se pudo leer el sensor de movimiento.');
-    }
-  };
-
   // Submit Booking Request (RF-04)
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -290,8 +237,6 @@ export function TutorProfile() {
       location: bookMode === 'physical' ? 'Campus Central UPTC' : '',
       studentLocation: studentLocation.trim(),
       studentCoordinates,
-      deviceStability: deviceStability.trim(),
-      motionReading,
       status: 'scheduled',
       paymentStatus: 'pending'
     };
@@ -375,7 +320,7 @@ export function TutorProfile() {
               <span>{isOffline ? 'Sin conexion' : 'En linea'}</span>
             </div>
             <div style={styles.nativeResourceRow}>
-              {nativeInfo.device === 'Dispositivo movil' ? <Smartphone size={15} /> : <Monitor size={15} />}
+              <Monitor size={15} />
               <span>{nativeInfo.device}</span>
             </div>
             <div style={styles.nativeResourceRow}>
@@ -393,10 +338,6 @@ export function TutorProfile() {
             <div style={styles.nativeResourceRow}>
               <MapPin size={15} color={nativeInfo.geolocation ? 'var(--success)' : 'var(--text-muted)'} />
               <span>Geolocalizacion {nativeInfo.geolocation ? 'disponible' : 'no disponible'}</span>
-            </div>
-            <div style={styles.nativeResourceRow}>
-              <Smartphone size={15} color={nativeInfo.motion ? 'var(--success)' : 'var(--text-muted)'} />
-              <span>Movimiento {nativeInfo.motion ? 'disponible' : 'no disponible'}</span>
             </div>
             <div style={styles.nativeResourceRow}>
               <Share2 size={15} color="var(--success)" />
@@ -477,32 +418,6 @@ export function TutorProfile() {
                 <Share2 size={16} /> Compartir por WhatsApp
               </button>
               <span style={styles.nativeActionStatus}>{nativeStatus.whatsapp}</span>
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={styles.nativeActionBtn}
-                onClick={readMotionSensor}
-              >
-                <Smartphone size={16} /> Leer movimiento
-              </button>
-              <span style={styles.nativeActionStatus}>{nativeStatus.motion}</span>
-              {motionReading && (
-                <div style={styles.nativeFieldWide}>
-                  <label htmlFor="device-stability">Uso previsto del dispositivo</label>
-                  <input
-                    id="device-stability"
-                    className="input"
-                    type="text"
-                    value={deviceStability}
-                    onChange={(e) => setDeviceStability(e.target.value)}
-                    placeholder="Ej. Lo apoyare en un escritorio para la videollamada"
-                  />
-                  <span style={styles.nativeHint}>
-                    Estabilidad estimada: {motionReading.stability}. Lectura x {motionReading.x}, y {motionReading.y}, z {motionReading.z}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
